@@ -9,7 +9,7 @@
   body {
     font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
     min-height: 100vh;
-    background: #0a0a0f;
+    background: #0d1b2a;
     display: flex;
     justify-content: center;
     align-items: flex-start;
@@ -20,10 +20,8 @@
     position: fixed;
     inset: 0;
     z-index: 0;
-    background:
-      radial-gradient(ellipse at 15% 30%, rgba(99,102,241,0.1) 0%, transparent 55%),
-      radial-gradient(ellipse at 85% 70%, rgba(236,72,153,0.08) 0%, transparent 55%),
-      radial-gradient(ellipse at 50% 50%, rgba(16,185,129,0.03) 0%, transparent 50%);
+    background: #0d1b2a;
+    transition: background 1s ease;
   }
   .container {
     position: relative;
@@ -317,8 +315,8 @@
 <div class="bg"></div>
 <div class="particles" id="particles"></div>
 <div class="container">
-  <h1>schön,<br>dass du <span>da</span> bist</h1>
-  <p>mach es dir gemütlich</p>
+  <h1><span>filterit</span> 📸</h1>
+  <p>wähl einen filter & mach ein foto</p>
   <div class="webcam">
     <video id="cam" autoplay playsinline muted></video>
     <canvas class="glitch-overlay" id="glitchOverlay"></canvas>
@@ -426,6 +424,24 @@ let currentFilter = 'neon';
 let psyRaf = null;
 let psyHue = 0;
 
+const bgColors = {
+  neon:   '#0d1b2a',
+  vintage:'#1a1410',
+  glitch: '#0f1a0f',
+  vhs:    '#1a0f14',
+  psychedelic:'#120a1a',
+  noir:   '#0a0a0a',
+  dream:  '#0f1a1a',
+  thermal:'#0a141f',
+  invert: '#1a1a0a',
+  warm:   '#1a1208',
+  ice:    '#081420',
+};
+
+function setBg(name) {
+  document.querySelector('.bg').style.backgroundColor = bgColors[name] || '#0d1b2a';
+}
+
 function getFilterCSS(name) {
   if (name === 'psychedelic') return `hue-rotate(${psyHue}deg) saturate(2) contrast(1.2) brightness(1.1)`;
   return filterMap[name] || 'none';
@@ -433,6 +449,7 @@ function getFilterCSS(name) {
 
 function setFilter(name) {
   currentFilter = name;
+  setBg(name);
   document.querySelectorAll('#filters button').forEach(b => b.classList.remove('active'));
   const btn = document.querySelector(`#filters button[data-filter="${name}"]`);
   if (btn) btn.classList.add('active');
@@ -799,16 +816,16 @@ function drawEmojis() {
 
     const bobL = Math.sin(now * 0.006) * 12;
     const bobR = Math.sin(now * 0.006 + Math.PI) * 12;
-    const size = Math.min(pw, ph) * 0.28;
+    const size = Math.min(pw, ph) * 0.40;
 
     ctx.save();
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
 
-    const numSize = size * 0.45;
+    const numSize = size * 0.55;
     ctx.font = `${numSize}px sans-serif`;
-    ctx.shadowColor = 'rgba(255,200,50,0.3)';
-    ctx.shadowBlur = 8;
+    ctx.shadowColor = 'rgba(255,200,50,0.5)';
+    ctx.shadowBlur = 16;
     ctx.fillText('6️⃣', pw * 0.25, ph * 0.55 + bobL - size * 0.7);
     ctx.fillText('7️⃣', pw * 0.75, ph * 0.55 + bobR - size * 0.7);
 
