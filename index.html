@@ -107,7 +107,7 @@
     text-transform: uppercase;
     white-space: nowrap;
     pointer-events: none;
-    z-index: 3;
+    z-index: 6;
   }
   .webcam canvas.glitch-overlay {
     position: absolute;
@@ -117,6 +117,14 @@
     display: none;
     z-index: 2;
     image-rendering: pixelated;
+  }
+  .webcam canvas.emoji-overlay {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    display: none;
+    z-index: 3;
   }
   .filters {
     margin-top: 14px;
@@ -219,6 +227,24 @@
     border-color: rgba(16,185,129,0.2);
     color: rgba(16,185,129,0.5);
   }
+  .effect-tag button.big67 {
+    font-size: 0.85rem;
+    padding: 5px 18px;
+    background: rgba(255,200,50,0.06);
+    border-color: rgba(255,200,50,0.12);
+    color: rgba(255,200,50,0.4);
+  }
+  .effect-tag button.big67:hover {
+    background: rgba(255,200,50,0.1);
+    border-color: rgba(255,200,50,0.2);
+    color: rgba(255,200,50,0.7);
+  }
+  .effect-tag button.big67.active {
+    background: rgba(255,200,50,0.15);
+    border-color: rgba(255,200,50,0.3);
+    color: rgba(255,200,50,0.8);
+    box-shadow: 0 0 25px rgba(255,200,50,0.1);
+  }
   .photos {
     margin-top: 24px;
     display: flex;
@@ -296,6 +322,7 @@
   <div class="webcam">
     <video id="cam" autoplay playsinline muted></video>
     <canvas class="glitch-overlay" id="glitchOverlay"></canvas>
+    <canvas class="emoji-overlay" id="emojiOverlay"></canvas>
     <div class="badge">🎥 <span id="filterBadge">neon</span></div>
   </div>
   <div class="filters" id="filters">
@@ -315,15 +342,18 @@
     <button class="shutter" id="captureBtn">📸 foto machen</button>
     <button id="burstBtn">⚡ burst (5×)</button>
   </div>
-  <div class="effect-tag" id="fxTags">
-    <span style="color:rgba(255,255,255,0.15);font-size:0.55rem;letter-spacing:1px;padding:3px 4px;">+</span>
-    <button data-fx="none" class="active">none</button>
-    <button data-fx="sparkle">✨ sparkle</button>
-    <button data-fx="glitch">📺 glitch</button>
-    <button data-fx="vignette">🎭 vignette</button>
-    <button data-fx="pixelate">🔲 pixel</button>
-  </div>
+
   <div class="photos" id="photos"></div>
+  <div class="effect-tag" id="emojiTags">
+    <span style="color:rgba(255,255,255,0.15);font-size:0.55rem;letter-spacing:1px;padding:3px 4px;">✨</span>
+    <button data-mood="none" class="active">none</button>
+    <button data-mood="party">🎉 party</button>
+    <button data-mood="color">🌈 bunt</button>
+    <button data-mood="chaos">💀 chaos</button>
+    <button data-mood="love">💖 liebe</button>
+    <button data-mood="nature">🌸 natur</button>
+    <button data-mood="sixseven" class="big67">🔥 6️⃣7️⃣ 🔥</button>
+  </div>
 </div>
 
 <script>
@@ -433,111 +463,6 @@ const photoEl = document.getElementById('photos');
 const captureBtn = document.getElementById('captureBtn');
 const burstBtn = document.getElementById('burstBtn');
 
-let currentFX = 'none';
-document.getElementById('fxTags').addEventListener('click', e => {
-  const btn = e.target.closest('button');
-  if (!btn) return;
-  document.querySelectorAll('#fxTags button').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  currentFX = btn.dataset.fx;
-});
-
-function effectSparkle(ctx, w, h) {
-  const img = ctx.getImageData(0, 0, w, h);
-  for (let i = 0; i < 60; i++) {
-    const x = Math.random() * w | 0;
-    const y = Math.random() * h | 0;
-    const r = 3 + Math.random() * 8 | 0;
-    const color = [Math.random() * 256 | 0, Math.random() * 256 | 0, Math.random() * 256 | 0, 255];
-    for (let dy = -r; dy <= r; dy++) {
-      for (let dx = -r; dx <= r; dx++) {
-        if (dx * dx + dy * dy > r * r) continue;
-        const px = x + dx, py = y + dy;
-        if (px < 0 || px >= w || py < 0 || py >= h) continue;
-        const ci = (py * w + px) * 4;
-        const mix = 0.5;
-        img.data[ci]     = img.data[ci]     * (1 - mix) + color[0] * mix;
-        img.data[ci + 1] = img.data[ci + 1] * (1 - mix) + color[1] * mix;
-        img.data[ci + 2] = img.data[ci + 2] * (1 - mix) + color[2] * mix;
-      }
-    }
-  }
-  ctx.putImageData(img, 0, 0);
-}
-
-function effectGlitch(ctx, w, h) {
-  const img = ctx.getImageData(0, 0, w, h);
-  for (let i = 0; i < 12; i++) {
-    const y = Math.random() * h | 0;
-    const barH = 2 + Math.random() * 8 | 0;
-    const shift = (Math.random() * 40 - 20) | 0;
-    for (let row = y; row < y + barH && row < h; row++) {
-      const src = row * w * 4;
-      const dst = (row * w + Math.max(0, shift)) * 4;
-      const len = (w - Math.abs(shift)) * 4;
-      if (shift > 0) {
-        for (let k = 0; k < len; k++) img.data[dst + k] = img.data[src + k];
-      } else {
-        for (let k = 0; k < len; k++) img.data[src + k] = img.data[src - shift * 4 + k];
-      }
-    }
-  }
-  ctx.putImageData(img, 0, 0);
-}
-
-function effectVignette(ctx, w, h) {
-  const img = ctx.getImageData(0, 0, w, h);
-  const cx = w / 2, cy = h / 2, maxDist = Math.sqrt(cx * cx + cy * cy);
-  for (let y = 0; y < h; y++) {
-    for (let x = 0; x < w; x++) {
-      const dist = Math.sqrt((x - cx) ** 2 + (y - cy) ** 2) / maxDist;
-      const factor = 1 - Math.pow(dist, 1.5) * 0.6;
-      const ci = (y * w + x) * 4;
-      img.data[ci]     *= factor;
-      img.data[ci + 1] *= factor;
-      img.data[ci + 2] *= factor;
-    }
-  }
-  ctx.putImageData(img, 0, 0);
-}
-
-function effectPixelate(ctx, w, h) {
-  const size = 8;
-  const cols = Math.ceil(w / size), rows = Math.ceil(h / size);
-  const img = ctx.getImageData(0, 0, w, h);
-  for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < cols; c++) {
-      let tr = 0, tg = 0, tb = 0, count = 0;
-      for (let dy = 0; dy < size; dy++) {
-        for (let dx = 0; dx < size; dx++) {
-          const px = c * size + dx, py = r * size + dy;
-          if (px >= w || py >= h) continue;
-          const ci = (py * w + px) * 4;
-          tr += img.data[ci]; tg += img.data[ci + 1]; tb += img.data[ci + 2];
-          count++;
-        }
-      }
-      tr /= count; tg /= count; tb /= count;
-      for (let dy = 0; dy < size; dy++) {
-        for (let dx = 0; dx < size; dx++) {
-          const px = c * size + dx, py = r * size + dy;
-          if (px >= w || py >= h) continue;
-          const ci = (py * w + px) * 4;
-          img.data[ci] = tr; img.data[ci + 1] = tg; img.data[ci + 2] = tb;
-        }
-      }
-    }
-  }
-  ctx.putImageData(img, 0, 0);
-}
-
-const fxMap = {
-  sparkle:  effectSparkle,
-  glitch:   effectGlitch,
-  vignette: effectVignette,
-  pixelate: effectPixelate,
-};
-
 function flash() {
   const el = document.createElement('div');
   el.className = 'flash';
@@ -560,19 +485,57 @@ function addPhoto(blob) {
   }
 }
 
+function vhsFrame(imgData, w, h) {
+  const d = imgData.data;
+  const out = new Uint8ClampedArray(d);
+  const shift = 6 + Math.random() * 20 | 0;
+  for (let y = 0; y < h; y++) {
+    const row = y * w;
+    for (let x = 0; x < w; x++) {
+      const i = (row + x) * 4;
+      const ri = (row + Math.max(0, x - shift)) * 4;
+      const bi = (row + Math.min(w - 1, x + shift)) * 4;
+      out[i]     = d[ri] || d[i];
+      out[i + 2] = d[bi + 2] || d[i + 2];
+    }
+  }
+  for (let t = 0; t < 4 + Math.random() * 8 | 0; t++) {
+    const barY = Math.random() * h | 0;
+    const barH = 3 + Math.random() * 20 | 0;
+    const barShift = (Math.random() * 60 - 30) | 0;
+    for (let row = barY; row < Math.min(barY + barH, h); row++) {
+      const srcOff = (row * w + Math.max(0, barShift)) * 4;
+      const dstOff = row * w * 4;
+      const len = (w - Math.abs(barShift)) * 4;
+      if (barShift > 0) {
+        for (let k = 0; k < len; k++) out[dstOff + k] = out[srcOff + k];
+      } else {
+        for (let k = 0; k < len; k++) out[dstOff + k] = out[dstOff - barShift * 4 + k];
+      }
+    }
+  }
+  return new ImageData(out, w, h);
+}
+
 function capturePhoto() {
   if (!ready || !video.videoWidth) return;
   const w = video.videoWidth, h = video.videoHeight;
   snapCanvas.width = w;
   snapCanvas.height = h;
   snapCtx.setTransform(-1, 0, 0, 1, 0, 0);
-  snapCtx.filter = getFilterCSS(currentFilter);
-  snapCtx.drawImage(video, -w, 0, w, h);
-  if (currentFX !== 'none' && fxMap[currentFX]) {
+
+  if (currentFilter === 'vhs') {
     snapCtx.filter = 'none';
-    fxMap[currentFX](snapCtx, w, h);
+    snapCtx.drawImage(video, -w, 0, w, h);
+    snapCtx.setTransform(1, 0, 0, 1, 0, 0);
+    const frame = snapCtx.getImageData(0, 0, w, h);
+    snapCtx.putImageData(vhsFrame(frame, w, h), 0, 0);
+  } else {
+    snapCtx.filter = getFilterCSS(currentFilter);
+    snapCtx.drawImage(video, -w, 0, w, h);
+    snapCtx.setTransform(1, 0, 0, 1, 0, 0);
   }
-  snapCtx.setTransform(1, 0, 0, 1, 0, 0);
+
   snapCtx.filter = 'none';
   snapCanvas.toBlob(addPhoto, 'image/png');
   flash();
@@ -596,7 +559,7 @@ burstBtn.addEventListener('click', async () => {
 // ── VHS glitch overlay ──
 let vhsRunning = false;
 let vhsRaf = null;
-let vhsFrame = null;
+let vhsState = null;
 
 function startVHS() {
   const overlay = document.getElementById('glitchOverlay');
@@ -712,7 +675,7 @@ function startVHS() {
     vhsRaf = requestAnimationFrame(drawGlitch);
   }
 
-  vhsFrame = { overlay, offscreen, ctx, offCtx, resize: resize.bind(null) };
+  vhsState = { overlay, offscreen, ctx, offCtx, resize: resize.bind(null) };
   drawGlitch();
 }
 
@@ -723,6 +686,166 @@ function stopVHS() {
   overlay.style.display = 'none';
   const ctx = overlay.getContext('2d');
   ctx && ctx.clearRect(0, 0, overlay.width, overlay.height);
+}
+
+// ── emoji particle overlay ──
+let emojiRunning = false;
+let emojiRaf = null;
+let emojiParticles = [];
+let currentMood = 'none';
+
+const moodPresets = {
+  party:  { emojis: ['🎉','🎊','🥳','🎈','🎁','🎀','✨'], count: 30, speed: 0.3, sway: 0.4, size: [16, 32] },
+  color:  { emojis: ['🌈','✨','💫','🌟','⭐','🎨','🦋','🔮'], count: 24, speed: 0.2, sway: 0.8, size: [14, 28] },
+  chaos:  { emojis: ['💀','👻','🤡','🎃','👽','👾','😈','💥'], count: 35, speed: 0.7, sway: 1.2, size: [16, 30] },
+  love:   { emojis: ['💖','💕','💗','💓','💘','❤️‍🔥','🩷','💝'], count: 28, speed: 0.25, sway: 0.3, size: [16, 30] },
+  nature: { emojis: ['🌸','🌺','🌻','🌿','🍀','🦋','🌸','🌼','🌱'], count: 22, speed: 0.15, sway: 0.3, size: [14, 28] },
+  sixseven: { emojis: ['😎','👉','🔥','💯','🫰','✨'], count: 14, speed: 0.3, sway: 0.4, size: [14, 22] },
+};
+
+function spawnEmojis(mood) {
+  const cfg = moodPresets[mood];
+  if (!cfg) return [];
+  const p = [];
+  for (let i = 0; i < cfg.count; i++) {
+    p.push({
+      emoji: cfg.emojis[Math.floor(Math.random() * cfg.emojis.length)],
+      x: Math.random(),
+      y: Math.random(),
+      size: cfg.size[0] + Math.random() * (cfg.size[1] - cfg.size[0]),
+      vx: (Math.random() - 0.5) * cfg.sway * 0.3,
+      vy: -(cfg.speed * (0.4 + Math.random() * 0.6)),
+      phase: Math.random() * Math.PI * 2,
+      freq: 0.3 + Math.random() * 0.4,
+      sway: cfg.sway,
+      speed: cfg.speed,
+      alpha: 0.5 + Math.random() * 0.5,
+    });
+  }
+  return p;
+}
+
+document.getElementById('emojiTags').addEventListener('click', e => {
+  const btn = e.target.closest('button');
+  if (!btn) return;
+  document.querySelectorAll('#emojiTags button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentMood = btn.dataset.mood;
+  if (currentMood !== 'none') startEmojis();
+  else stopEmojis();
+});
+
+function startEmojis() {
+  if (emojiRunning) return;
+  const overlay = document.getElementById('emojiOverlay');
+  overlay.style.display = 'block';
+  emojiRunning = true;
+  emojiParticles = spawnEmojis(currentMood);
+  drawEmojis();
+}
+
+function stopEmojis() {
+  emojiRunning = false;
+  if (emojiRaf) { cancelAnimationFrame(emojiRaf); emojiRaf = null; }
+  const overlay = document.getElementById('emojiOverlay');
+  overlay.style.display = 'none';
+  const ctx = overlay.getContext('2d');
+  if (ctx) ctx.clearRect(0, 0, overlay.width, overlay.height);
+  emojiParticles = [];
+}
+
+const origSetFilter = setFilter;
+setFilter = function(name) {
+  origSetFilter(name);
+  if (currentMood !== 'none') startEmojis();
+};
+
+function drawEmojis() {
+  if (!emojiRunning) return;
+  const overlay = document.getElementById('emojiOverlay');
+  const parent = overlay.parentElement;
+  const pw = parent.offsetWidth, ph = parent.offsetHeight;
+  const dpr = window.devicePixelRatio || 1;
+  overlay.width = pw * dpr;
+  overlay.height = ph * dpr;
+  overlay.style.width = pw + 'px';
+  overlay.style.height = ph + 'px';
+  const ctx = overlay.getContext('2d');
+  ctx.clearRect(0, 0, overlay.width, overlay.height);
+  ctx.scale(dpr, dpr);
+
+  const cfg = moodPresets[currentMood] || moodPresets.party;
+  const now = Date.now();
+
+  if (currentMood === 'sixseven') {
+    for (const p of emojiParticles) {
+      p.x += p.vx + Math.sin(now * 0.001 * p.freq + p.phase) * p.sway * 0.005;
+      p.y += p.vy * (1 / 60);
+      if (p.y < -0.1) { p.y = 1.1; p.x = Math.random(); p.emoji = cfg.emojis[Math.floor(Math.random() * cfg.emojis.length)]; }
+      ctx.save();
+      ctx.globalAlpha = p.alpha * 0.5;
+      ctx.font = `${p.size * 0.7}px serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(p.emoji, p.x * pw, p.y * ph);
+      ctx.restore();
+    }
+
+    const bobL = Math.sin(now * 0.006) * 12;
+    const bobR = Math.sin(now * 0.006 + Math.PI) * 12;
+    const size = Math.min(pw, ph) * 0.28;
+
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    const numSize = size * 0.45;
+    ctx.font = `${numSize}px sans-serif`;
+    ctx.shadowColor = 'rgba(255,200,50,0.3)';
+    ctx.shadowBlur = 8;
+    ctx.fillText('6️⃣', pw * 0.25, ph * 0.55 + bobL - size * 0.7);
+    ctx.fillText('7️⃣', pw * 0.75, ph * 0.55 + bobR - size * 0.7);
+
+    ctx.shadowBlur = 0;
+    ctx.font = `${size}px serif`;
+    const r = size * 0.55;
+    for (const [hx, hy] of [[pw*0.25, ph*0.55+bobL], [pw*0.75, ph*0.55+bobR]]) {
+      const grad = ctx.createRadialGradient(hx - r*0.2, hy - r*0.2, 0, hx, hy, r);
+      grad.addColorStop(0, 'rgba(255,220,150,0.25)');
+      grad.addColorStop(1, 'rgba(255,180,100,0.08)');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(hx, hy, r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.fillStyle = '#fff';
+    ctx.shadowColor = 'rgba(255,200,100,0.25)';
+    ctx.shadowBlur = 16;
+    ctx.fillText('🫲', pw * 0.25, ph * 0.55 + bobL);
+    ctx.fillText('🫱', pw * 0.75, ph * 0.55 + bobR);
+
+    ctx.restore();
+  } else {
+    for (const p of emojiParticles) {
+      p.x += p.vx + Math.sin(now * 0.001 * p.freq + p.phase) * p.sway * 0.005;
+      p.y += p.vy * (1 / 60);
+      if (p.y < -0.1) { p.y = 1.1; p.x = Math.random(); p.emoji = cfg.emojis[Math.floor(Math.random() * cfg.emojis.length)]; }
+      const sx = p.x * pw;
+      const sy = p.y * ph;
+      ctx.save();
+      ctx.globalAlpha = p.alpha;
+      ctx.font = `${p.size}px serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.shadowColor = `hsla(0,0%,100%,${p.alpha * 0.2})`;
+      ctx.shadowBlur = 8;
+      ctx.fillText(p.emoji, sx, sy);
+      ctx.restore();
+    }
+  }
+
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  emojiRaf = requestAnimationFrame(drawEmojis);
 }
 </script>
 </body>
