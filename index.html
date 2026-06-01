@@ -537,6 +537,12 @@ function capturePhoto() {
   }
 
   snapCtx.filter = 'none';
+
+  if (currentMood !== 'none') {
+    const eo = document.getElementById('emojiOverlay');
+    snapCtx.drawImage(eo, 0, 0, eo.width, eo.height, 0, 0, w, h);
+  }
+
   snapCanvas.toBlob(addPhoto, 'image/png');
   flash();
 }
