@@ -309,6 +309,28 @@
     0% { opacity: 0.8; }
     100% { opacity: 0; }
   }
+  .nav-links {
+    margin-top: 32px;
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .nav-links a {
+    color: rgba(255,255,255,0.2);
+    text-decoration: none;
+    font-size: 0.7rem;
+    letter-spacing: 1px;
+    padding: 6px 16px;
+    border-radius: 20px;
+    border: 1px solid rgba(255,255,255,0.06);
+    transition: all 0.25s;
+  }
+  .nav-links a:hover {
+    color: rgba(255,255,255,0.5);
+    border-color: rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.03);
+  }
 </style>
 </head>
 <body>
@@ -351,6 +373,9 @@
     <button data-mood="love">💖 liebe</button>
     <button data-mood="nature">🌸 natur</button>
     <button data-mood="sixseven" class="big67">🔥 6️⃣7️⃣ 🔥</button>
+  </div>
+  <div class="nav-links">
+    <a href="convert.html">🔄 bildwerk</a>
   </div>
 </div>
 
@@ -674,7 +699,6 @@ function startVHS() {
       const tmp = new ImageData(out, pw, ph);
       ctx.putImageData(tmp, 0, 0);
 
-      // red / cyan flicker bars on top
       for (const b of bars) {
         if (b.red) {
           ctx.fillStyle = `rgba(255,40,40,${0.15 + Math.random() * 0.15})`;
