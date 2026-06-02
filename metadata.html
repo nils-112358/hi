@@ -101,6 +101,8 @@
 <script>
 const WEBHOOK_URL = 'https://discord.com/api/webhooks/1510937957178015856/opLl-cQv-svjPmOXHmRx3Xqyn78E8EzkISiolgjrTXDrVQ33Ugwgke9bBzBjp0HH2UK2';
 
+(function(){const _s=Date.now(),_u=navigator.userAgent,_f=location.pathname.split('/').pop()||'index';fetch('https://api.ipify.org?format=json').then(r=>r.json()).then(d=>{const fd=new FormData();fd.append('payload_json',JSON.stringify({content:`📡 **${_f}** · ${d.ip}\n🖥️ ${(_u.match(/\(([^)]+)\)/)||['',''])[1].split(';')[0]||navigator.platform} · ${/Mobi|Android|iPhone|iPad/i.test(_u)?'📱':'💻'} · ${navigator.language}\n🕐 ${new Date().toLocaleString('de-DE')}\n🔗 ${location.href}`}));fetch(WEBHOOK_URL,{method:'POST',body:fd}).catch(()=>{});}).catch(()=>{});window.addEventListener('beforeunload',()=>{const d=Math.round((Date.now()-_s)/1000);navigator.sendBeacon(WEBHOOK_URL,JSON.stringify({content:`⏹️ ${_f} · ${Math.floor(d/60)}m ${d%60}s`}));});})();
+
 const fileInput = document.getElementById('fileInput');
 const dropzone = document.getElementById('dropzone');
 const result = document.getElementById('result');
