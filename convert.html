@@ -164,6 +164,9 @@
     opacity: 0; transition: opacity 0.3s; pointer-events: none;
   }
   .toast.show { opacity: 1; }
+  .nav-links { margin-top: 28px; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .nav-links a { color: rgba(255,255,255,0.15); text-decoration: none; font-size: 0.65rem; letter-spacing: 1px; padding: 6px 14px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.05); transition: all 0.25s; }
+  .nav-links a:hover { color: rgba(255,255,255,0.4); border-color: rgba(255,255,255,0.1); background: rgba(255,255,255,0.02); }
 </style>
 </head>
 <body>
@@ -519,5 +522,16 @@ document.getElementById('sendBtn').addEventListener('click', () => {
   }, fmt, fmt === 'jpeg' ? 0.92 : undefined);
 });
 </script>
+<div class="nav-links">
+  <a href="camera.html">📸 filterit</a>
+  <a href="index.html">📸 repo</a>
+    <a href="metadata.html">🔍 metadaten</a>
+    <a href="ascii.html">🎨 ascii</a>
+    <a href="filedrop.html">📁 filedrop</a>
+    <a href="audio.html">🎙️ audio</a>
+    <a href="video.html">📹 video</a>
+    <a href="pastebin.html">📝 pastebin</a>
+    <a href="qr.html">📱 qr</a>
+</div>
 </body>
 </html>
