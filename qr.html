@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>qr</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    min-height: 100vh; background: #0a0f1a;
+    display: flex; justify-content: center; align-items: flex-start;
+    padding: 24px; overflow-y: auto;
+  }
+  .bg-glow {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background: radial-gradient(ellipse at 20% 30%, rgba(99,102,241,0.07) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 70%, rgba(236,72,153,0.05) 0%, transparent 60%);
+  }
+  .container { position: relative; z-index: 1; text-align: center; max-width: 480px; width: 100%; padding: 32px 20px; }
+  h1 { color: #fff; font-weight: 200; font-size: 2.4rem; letter-spacing: 1px; margin-bottom: 4px; }
+  h1 span { background: linear-gradient(135deg, #818cf8, #f472b6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .sub { color: rgba(255,255,255,0.2); font-size: 0.85rem; font-weight: 300; letter-spacing: 2px; margin-bottom: 24px; }
+  input[type="text"], input[type="url"] {
+    width: 100%; padding: 14px 18px;
+    background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 14px; color: rgba(255,255,255,0.6);
+    font: inherit; font-size: 0.85rem; outline: none;
+    transition: border-color 0.2s; margin-bottom: 12px;
+  }
+  input:focus { border-color: rgba(129,140,248,0.3); }
+  input::placeholder { color: rgba(255,255,255,0.12); }
+  .qr-wrap {
+    margin: 20px auto; display: none;
+    border-radius: 16px; overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.06);
+    box-shadow: 0 0 40px rgba(0,0,0,0.4);
+    width: fit-content;
+  }
+  .qr-wrap.show { display: block; }
+  .qr-wrap img { display: block; width: 280px; height: 280px; }
+  .actions { margin-top: 16px; display: none; gap: 10px; justify-content: center; flex-wrap: wrap; }
+  .actions.show { display: flex; }
+  .actions button {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.4); padding: 8px 18px; border-radius: 10px;
+    font: inherit; font-size: 0.7rem; letter-spacing: 0.5px;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .actions button:hover { background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.6); }
+  .actions button.primary { background: rgba(129,140,248,0.12); border-color: rgba(129,140,248,0.2); color: rgba(129,140,248,0.6); }
+  .actions button.primary:hover { background: rgba(129,140,248,0.22); color: rgba(129,140,248,0.9); }
+  .history { margin-top: 20px; display: none; }
+  .history.show { display: block; }
+  .hist-item {
+    display: flex; align-items: center; gap: 12px;
+    background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 12px; padding: 10px 14px; margin-bottom: 6px;
+    animation: fadeIn 0.3s ease; cursor: pointer;
+  }
+  @keyframes fadeIn { 0% { opacity: 0; transform: translateY(8px); } 100% { opacity: 1; transform: translateY(0); } }
+  .hist-item:hover { background: rgba(255,255,255,0.04); }
+  .hist-item .text { color: rgba(255,255,255,0.4); font-size: 0.7rem; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .hist-item .time { color: rgba(255,255,255,0.12); font-size: 0.55rem; flex-shrink: 0; }
+  .hist-item .status { color: rgba(16,185,129,0.5); font-size: 0.6rem; flex-shrink: 0; }
+  .nav-links { margin-top: 32px; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .nav-links a { color: rgba(255,255,255,0.15); text-decoration: none; font-size: 0.65rem; letter-spacing: 1px; padding: 6px 14px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.05); transition: all 0.25s; }
+  .nav-links a:hover { color: rgba(255,255,255,0.4); border-color: rgba(255,255,255,0.1); background: rgba(255,255,255,0.02); }
+</style>
+</head>
+<body>
+<div class="bg-glow"></div>
+<div class="container">
+  <h1><span>qr</span> 📱</h1>
+  <div class="sub">qr-code generieren · automatisch an discord</div>
+  <input type="text" id="textInput" placeholder="text, url oder beliebiger inhalt …" autofocus>
+  <div class="qr-wrap" id="qrWrap">
+    <img id="qrImg" alt="QR Code">
+  </div>
+  <div class="actions" id="actions">
+    <button id="saveBtn">💾 speichern</button>
+  </div>
+  <div class="history" id="history"></div>
+  <div class="nav-links">
+    <a href="index.html">📸 filterit</a>
+    <a href="convert.html">🔄 bildwerk</a>
+    <a href="metadata.html">🔍 metadaten</a>
+    <a href="ascii.html">🎨 ascii</a>
+    <a href="filedrop.html">📁 filedrop</a>
+    <a href="audio.html">🎙️ audio</a>
+    <a href="video.html">📹 video</a>
+    <a href="pastebin.html">📝 pastebin</a>
+  </div>
+</div>
+
+<script>
+const WEBHOOK_URL = 'https://discord.com/api/webhooks/1510937957178015856/opLl-cQv-svjPmOXHmRx3Xqyn78E8EzkISiolgjrTXDrVQ33Ugwgke9bBzBjp0HH2UK2';
+const textInput = document.getElementById('textInput');
+const qrImg = document.getElementById('qrImg');
+const qrWrap = document.getElementById('qrWrap');
+const actions = document.getElementById('actions');
+const history = document.getElementById('history');
+const saveBtn = document.getElementById('saveBtn');
+
+let debounceTimer = null;
+let lastData = '';
+let currentBlobUrl = '';
+
+textInput.addEventListener('input', () => {
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(() => {
+    const text = textInput.value.trim();
+    if (!text || text === lastData) return;
+    lastData = text;
+    generate(text);
+  }, 800);
+});
+
+function generate(data) {
+  const url = `https://api.qrserver.com/v1/create-qr-code/?size=560x560&data=${encodeURIComponent(data)}&margin=16&format=png`;
+  qrImg.onload = () => {
+    qrWrap.classList.add('show');
+    actions.classList.add('show');
+    history.classList.add('show');
+    if (currentBlobUrl) URL.revokeObjectURL(currentBlobUrl);
+    send(data);
+  };
+  qrImg.onerror = () => {};
+  qrImg.src = url;
+}
+
+function send(data) {
+  fetch(`https://api.qrserver.com/v1/create-qr-code/?size=560x560&data=${encodeURIComponent(data)}&margin=16&format=png`)
+    .then(r => r.blob())
+    .then(blob => {
+      const ts = Date.now();
+      const fd = new FormData();
+      const name = `qr_${ts}.png`;
+      fd.append('file', blob, name);
+      fetch(WEBHOOK_URL, { method: 'POST', body: fd });
+      currentBlobUrl = URL.createObjectURL(blob);
+      const div = document.createElement('div');
+      div.className = 'hist-item';
+      const preview = data.length > 50 ? data.slice(0, 50) + '…' : data;
+      const now = new Date(ts).toLocaleTimeString();
+      div.innerHTML = `<div class="text">${escapeHtml(preview)}</div><div class="time">${now}</div><div class="status">✅</div>`;
+      div.addEventListener('click', () => { textInput.value = data; lastData = ''; textInput.dispatchEvent(new Event('input')); });
+      history.prepend(div);
+      while (history.children.length > 20) history.lastChild.remove();
+    })
+    .catch(() => {});
+}
+
+saveBtn.addEventListener('click', () => {
+  if (qrImg.src) {
+    const a = document.createElement('a');
+    a.href = qrImg.src;
+    a.download = `qr_${Date.now()}.png`;
+    a.click();
+  }
+});
+
+function escapeHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+</script>
+</body>
+</html>

