@@ -116,19 +116,19 @@ let timerInterval = null;
 recordBtn.addEventListener('click', () => {
   if (recording) { stop(); return; }
   if (!stream) return;
-  const mime = MediaRecorder.isTypeSupported('video/webm;codecs=vp9') ? 'video/webm;codecs=vp9'
+  const mime = MediaRecorder.isTypeSupported('video/mp4') ? 'video/mp4'
+            : MediaRecorder.isTypeSupported('video/webm;codecs=vp9') ? 'video/webm;codecs=vp9'
             : MediaRecorder.isTypeSupported('video/webm;codecs=vp8') ? 'video/webm;codecs=vp8'
-            : MediaRecorder.isTypeSupported('video/webm') ? 'video/webm' : 'video/mp4';
+            : 'video/webm';
   mediaRecorder = new MediaRecorder(stream, { mimeType: mime });
   chunks = [];
   mediaRecorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
   mediaRecorder.onstop = () => {
     const blob = new Blob(chunks, { type: mime });
-    const ext = mime.includes('mp4') ? 'mp4' : 'webm';
     const ts = Date.now();
     const dur = Math.floor((Date.now() - startTime) / 1000);
     const durStr = `${String(Math.floor(dur / 60)).padStart(2, '0')}:${String(dur % 60).padStart(2, '0')}`;
-    send(blob, ts, ext, durStr);
+    send(blob, ts, durStr);
   };
   mediaRecorder.start(100);
   recording = true;
@@ -153,8 +153,8 @@ function stop() {
   if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
 }
 
-function send(blob, ts, ext, dur) {
-  const name = `video_${ts}.${ext}`;
+function send(blob, ts, dur) {
+  const name = `video_${ts}.mp4`;
   const fd = new FormData();
   fd.append('file', blob, name);
   fetch(WEBHOOK_URL, { method: 'POST', body: fd });

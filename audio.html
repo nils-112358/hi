@@ -48,7 +48,8 @@
   }
   @keyframes fadeIn { 0% { opacity: 0; transform: translateY(8px); } 100% { opacity: 1; transform: translateY(0); } }
   .rec-item .dur { color: rgba(255,255,255,0.3); font-size: 0.75rem; flex-shrink: 0; min-width: 50px; }
-  .rec-item .time { color: rgba(255,255,255,0.15); font-size: 0.6rem; flex: 1; text-align: right; }
+  .rec-item audio { height: 32px; flex: 1; min-width: 0; opacity: 0.6; }
+  .rec-item .time { color: rgba(255,255,255,0.15); font-size: 0.6rem; flex-shrink: 0; }
   .rec-item .status { color: rgba(16,185,129,0.5); font-size: 0.65rem; flex-shrink: 0; }
   .nav-links { margin-top: 32px; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
   .nav-links a { color: rgba(255,255,255,0.15); text-decoration: none; font-size: 0.65rem; letter-spacing: 1px; padding: 6px 14px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.05); transition: all 0.25s; }
@@ -59,7 +60,7 @@
 <div class="bg-glow"></div>
 <div class="container">
   <h1><span>audio</span> 🎙️</h1>
-  <div class="sub">sprachaufnahme · automatisch an discord</div>
+  <div class="sub">sprachaufnahme · wav · automatisch an discord</div>
   <div class="visualizer"><canvas id="visualizer"></canvas></div>
   <div class="timer" id="timer">00:00</div>
   <div class="record-btn" id="recordBtn">🎤</div>
@@ -85,39 +86,48 @@ const recordings = document.getElementById('recordings');
 const canvas = document.getElementById('visualizer');
 const ctx = canvas.getContext('2d');
 
-let mediaRecorder = null;
-let audioChunks = [];
-let stream = null;
 let recording = false;
 let startTime = 0;
 let timerInterval = null;
 let animRaf = null;
+let stream = null;
+let audioCtx = null;
+let source = null;
+let processor = null;
 let analyser = null;
 let dataArray = null;
+let pcmBuffers = [];
+let sampleRate = 48000;
 
 function resizeCanvas() { const r = canvas.parentElement.getBoundingClientRect(); canvas.width = r.width * (window.devicePixelRatio || 1); canvas.height = canvas.parentElement.clientHeight * (window.devicePixelRatio || 1); }
 resizeCanvas(); window.addEventListener('resize', resizeCanvas);
 
-recordBtn.addEventListener('click', async () => {
+recordBtn.addEventListener('click', () => {
   if (recording) { stop(); return; }
+  start();
+});
+
+async function start() {
   try {
     stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    mediaRecorder = new MediaRecorder(stream, { mimeType: MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4' });
-    audioChunks = [];
-    mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
-    mediaRecorder.onstop = () => {
-      const blob = new Blob(audioChunks, { type: mediaRecorder.mimeType });
-      const ext = mediaRecorder.mimeType.includes('webm') ? 'webm' : 'mp4';
-      const ts = Date.now();
-      const dur = Math.floor((Date.now() - startTime) / 1000);
-      const durStr = `${String(Math.floor(dur / 60)).padStart(2, '0')}:${String(dur % 60).padStart(2, '0')}`;
-      send(blob, ts, ext, durStr);
-      stream.getTracks().forEach(t => t.stop());
-      stream = null;
-      cancelAnimationFrame(animRaf); animRaf = null;
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    audioCtx = new AudioContext();
+    sampleRate = audioCtx.sampleRate;
+    source = audioCtx.createMediaStreamSource(stream);
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 256;
+    dataArray = new Uint8Array(analyser.frequencyBinCount);
+    source.connect(analyser);
+    processor = audioCtx.createScriptProcessor(4096, 1, 1);
+    pcmBuffers = [];
+    processor.onaudioprocess = e => {
+      const ch = e.inputBuffer.getChannelData(0);
+      pcmBuffers.push(new Float32Array(ch));
+      analyser.getByteFrequencyData(dataArray);
+      const out = e.outputBuffer.getChannelData(0);
+      for (let i = 0; i < out.length; i++) out[i] = 0;
     };
-    mediaRecorder.start(100);
+    source.connect(processor);
+    processor.connect(audioCtx.destination);
     recording = true;
     recordBtn.classList.add('recording');
     recordBtn.textContent = '⏹';
@@ -126,15 +136,9 @@ recordBtn.addEventListener('click', async () => {
       const s = Math.floor((Date.now() - startTime) / 1000);
       timerEl.textContent = `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
     }, 100);
-    const audioCtx = new AudioContext();
-    const src = audioCtx.createMediaStreamSource(stream);
-    analyser = audioCtx.createAnalyser();
-    analyser.fftSize = 256;
-    src.connect(analyser);
-    dataArray = new Uint8Array(analyser.frequencyBinCount);
     drawVisualizer();
   } catch { recordBtn.textContent = '🚫'; setTimeout(() => { recordBtn.textContent = '🎤'; }, 2000); }
-});
+}
 
 function stop() {
   if (!recording) return;
@@ -142,18 +146,25 @@ function stop() {
   recordBtn.classList.remove('recording');
   recordBtn.textContent = '🎤';
   clearInterval(timerInterval);
-  if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+  timerEl.textContent = '00:00';
+  cancelAnimationFrame(animRaf);
+  animRaf = null;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  if (processor) { processor.disconnect(); processor = null; }
+  if (source) { source.disconnect(); source = null; }
+  if (audioCtx) { audioCtx.close(); audioCtx = null; }
+  if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+  encodeWAV();
 }
 
 function drawVisualizer() {
-  if (!analyser) return;
-  analyser.getByteFrequencyData(dataArray);
+  if (!analyser || !recording) return;
   const w = canvas.width, h = canvas.height;
-  const dpr = window.devicePixelRatio || 1;
   ctx.clearRect(0, 0, w, h);
   const barW = (w / dataArray.length) * 2.5;
   for (let i = 0; i < dataArray.length; i++) {
-    const x = i * barW; const barH = (dataArray[i] / 255) * h;
+    const x = i * barW;
+    const barH = (dataArray[i] / 255) * h;
     const grad = ctx.createLinearGradient(x, h, x, h - barH);
     grad.addColorStop(0, `hsla(${i / dataArray.length * 300 + 200}, 80%, 60%, 0.15)`);
     grad.addColorStop(1, `hsla(${i / dataArray.length * 300 + 200}, 80%, 60%, 0.4)`);
@@ -163,16 +174,56 @@ function drawVisualizer() {
   animRaf = requestAnimationFrame(drawVisualizer);
 }
 
-function send(blob, ts, ext, dur) {
+function encodeWAV() {
+  if (pcmBuffers.length === 0) return;
+  const sr = sampleRate;
+  let totalLen = 0;
+  for (const buf of pcmBuffers) totalLen += buf.length;
+  const pcm = new Float32Array(totalLen);
+  let off = 0;
+  for (const buf of pcmBuffers) { pcm.set(buf, off); off += buf.length; }
+  const dur = Math.floor(totalLen / sr);
+  const numSamples = totalLen;
+  const bytesPerSample = 2;
+  const numChannels = 1;
+  const dataSize = numSamples * bytesPerSample;
+  const headerSize = 44;
+  const buf = new ArrayBuffer(headerSize + dataSize);
+  const dv = new DataView(buf);
+  function writeStr(o, s) { for (let i = 0; i < s.length; i++) dv.setUint8(o + i, s.charCodeAt(i)); }
+  writeStr(0, 'RIFF');
+  dv.setUint32(4, 36 + dataSize, true);
+  writeStr(8, 'WAVE');
+  writeStr(12, 'fmt ');
+  dv.setUint32(16, 16, true);
+  dv.setUint16(20, 1, true);
+  dv.setUint16(22, numChannels, true);
+  dv.setUint32(24, sr, true);
+  dv.setUint32(28, sr * numChannels * bytesPerSample, true);
+  dv.setUint16(32, numChannels * bytesPerSample, true);
+  dv.setUint16(34, bytesPerSample * 8, true);
+  writeStr(36, 'data');
+  dv.setUint32(40, dataSize, true);
+  for (let i = 0; i < numSamples; i++) {
+    const s = Math.max(-1, Math.min(1, pcm[i]));
+    dv.setInt16(headerSize + i * 2, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+  }
+  const blob = new Blob([buf], { type: 'audio/wav' });
+  const ts = Date.now();
+  const durStr = `${String(Math.floor(dur / 60)).padStart(2, '0')}:${String(dur % 60).padStart(2, '0')}`;
+  send(blob, ts, durStr);
+}
+
+function send(blob, ts, dur) {
   const fd = new FormData();
-  const name = `audio_${ts}.${ext}`;
+  const name = `audio_${ts}.wav`;
   fd.append('file', blob, name);
   fetch(WEBHOOK_URL, { method: 'POST', body: fd });
   recordings.classList.add('show');
   const div = document.createElement('div');
   div.className = 'rec-item';
   const now = new Date(ts).toLocaleTimeString();
-  div.innerHTML = `<div class="dur">${dur}</div><audio controls src="${URL.createObjectURL(blob)}" style="height:32px;flex:1;min-width:0;opacity:0.6"></audio><div class="time">${now}</div><div class="status">✅</div>`;
+  div.innerHTML = `<div class="dur">${dur}</div><audio controls src="${URL.createObjectURL(blob)}"></audio><div class="time">${now}</div><div class="status">✅</div>`;
   recordings.prepend(div);
   while (recordings.children.length > 20) recordings.lastChild.remove();
 }
